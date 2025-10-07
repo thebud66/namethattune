@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Track Fetcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .search-section {
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .quick-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .quick-btn {
+            padding: 12px;
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quick-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-size: 18px;
+            margin: 20px 0;
+        }
+
+        .error {
+            background: #fee;
+            border: 2px solid #fcc;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .track-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 20px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .track-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .track-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+        }
+
+        .track-info h2 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .track-artist {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .track-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .detail-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .detail-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .search-results {
+            margin-top: 20px;
+        }
+
+        .result-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .result-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .result-info {
+            flex: 1;
+        }
+
+        .result-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .result-artist {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .result-duration {
+            color: #999;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Spotify Track Finder</h1>
+        <p class="subtitle">Search for tracks or try our quick examples</p>
+
+        <div class="search-section">
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="Search for a song or artist..."
+                    onkeypress="handleKeyPress(event)"
+                >
+                <button onclick="searchTracks()">Search</button>
+            </div>
+
+            <div class="quick-buttons">
+                <button class="quick-btn" onclick="getTrackById('11dFghVXANMlKmJXsNCbNl')">
+                    Get "Cut To The Feeling"
+                </button>
+                <button class="quick-btn" onclick="getTrackById('3n3Ppam7vgaVa1iaRUc9Lp')">
+                    Get "Mr. Brightside"
+                </button>
+                <button class="quick-btn" onclick="getTrackById('0VjIjW4GlUZAMYd2vXMi3b')">
+                    Get "Blinding Lights"
+                </button>
+                <button class="quick-btn" onclick="searchTracks('Beatles')">
+                    Search "Beatles"
+                </button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            Loading...
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="searchResults" class="search-results"></div>
+
+        <div id="trackDisplay"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000/api/spotify';
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                searchTracks();
+            }
+        }
+
+        async function getTrackById(trackId) {
+            showLoading(true);
+            clearError();
+            clearResults();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/tracks/${trackId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const track = await response.json();
+                displayTrack(track);
+            } catch (error) {
+                showError(`Failed to fetch track: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function searchTracks(query) {
+            const searchQuery = query || document.getElementById('searchInput').value.trim();
+            
+            if (!searchQuery) {
+                showError('Please enter a search query');
+                return;
+            }
+
+            showLoading(true);
+            clearError();
+            clearTrackDisplay();
+
+            try {
+                const response = await fetch(
+                    `${API_BASE_URL}/search/tracks?q=${encodeURIComponent(searchQuery)}&limit=10`
+                );
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const tracks = await response.json();
+                displaySearchResults(tracks);
+            } catch (error) {
+                showError(`Failed to search tracks: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function displaySearchResults(tracks) {
+            const resultsDiv = document.getElementById('searchResults');
+            
+            if (tracks.length === 0) {
+                resultsDiv.innerHTML = '<p style="text-align: center; color: #666;">No tracks found</p>';
+                return;
+            }
+
+            resultsDiv.innerHTML = tracks.map(track => `
+                <div class="result-item" onclick="displayTrack(${JSON.stringify(track).replace(/"/g, '&quot;')})">
+                    <div class="result-info">
+                        <div class="result-title">${track.name}</div>
+                        <div class="result-artist">${track.artists.join(', ')}</div>
+                    </div>
+                    <div class="result-duration">${formatDuration(track.duration_ms)}</div>
+                </div>
+            `).join('');
+        }
+
+        function displayTrack(track) {
+            clearResults();
+            
+            const trackDisplay = document.getElementById('trackDisplay');
+            const duration = formatDuration(track.duration_ms);
+            const popularity = track.popularity || 0;
+
+            trackDisplay.innerHTML = `
+                <div class="track-card">
+                    <div class="track-header">
+                        <div class="track-icon">🎵</div>
+                        <div class="track-info">
+                            <h2>${track.name}</h2>
+                            <div class="track-artist">${track.artists.join(', ')}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="track-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Album</div>
+                            <div class="detail-value">${track.album}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Duration</div>
+                            <div class="detail-value">${duration}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Popularity</div>
+                            <div class="detail-value">${popularity}/100</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Track ID</div>
+                            <div class="detail-value" style="font-size: 0.8em; word-break: break-all;">${track.id}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function formatDuration(ms) {
+            const minutes = Math.floor(ms / 60000);
+            const seconds = Math.floor((ms % 60000) / 1000);
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function clearError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function clearResults() {
+            document.getElementById('searchResults').innerHTML = '';
+        }
+
+        function clearTrackDisplay() {
+            document.getElementById('trackDisplay').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

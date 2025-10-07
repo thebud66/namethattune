@@ -1,0 +1,213 @@
+# ===== Python =====
+# Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath
+*.sage.py
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Rope
+.ropeproject
+
+# mkdocs
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# ===== Node.js / React =====
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Production build
+/build
+/dist
+/.next
+/out
+
+# Testing
+/coverage
+
+# Misc
+.DS_Store
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ===== Environment Variables =====
+# IMPORTANT: Keep your secrets safe!
+.env
+.env.*
+!.env.example
+
+# ===== Database =====
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+*.dump
+
+# ===== Logs =====
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ===== OS Generated =====
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ===== FastAPI / Uvicorn =====
+*.pyc
+.pytest_cache/
+.mypy_cache/
+
+# ===== Uploaded Files =====
+# Uncomment if you want to ignore user uploads
+# /frontend/public/images/
+# /backend/uploads/
+
+# ===== Temporary Files =====
+*.tmp
+*.temp
+*.bak
+*.swp
+*~.nib
+
+# ===== Package Managers =====
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ===== IDEs =====
+# PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Vim
+*.swp
+*.swo
+
+# Emacs
+*~
+\#*\#
+
+# ===== System Files =====
+.fuse_hidden*
+
+# ===== Optional: Keep these commented unless needed =====
+# Ignore all images except placeholders
+# *.jpg
+# *.jpeg
+# *.png
+# *.gif
+# !*placeholder*
+
+# Ignore compiled CSS if using preprocessors
+# *.css
+# !src/styles/namethattune.css
