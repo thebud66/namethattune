@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, Mail, Settings, Music, Users } from 'lucide-react';
+import { Menu, X, Mail, Settings, Music, Users, Play } from 'lucide-react';
 
 const Header = ({ currentPage, setCurrentPage }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -9,9 +9,10 @@ const Header = ({ currentPage, setCurrentPage }) => {
   const navItems = [
     { id: 'home', label: 'Home', icon: Music },
     { id: 'players', label: 'Players', icon: Users },
+    { id: 'spotify-search', label: 'Search', icon: Music },
+    { id: 'spotify-player', label: 'Player', icon: Play },
     { id: 'contact', label: 'Contact', icon: Mail },
     { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'spotify-search', label: 'Spotify Search', icon: Music },
   ];
 
   return (

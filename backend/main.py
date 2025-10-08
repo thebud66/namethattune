@@ -7,6 +7,7 @@ from .models import Player
 from .routes.PlayerRoutes import router as player_router
 from .routes.UploadRoutes import router as upload_router
 from .routes.SpotifyRoutes import router as spotify_router
+from .routes.SpotifyAuthRoutes import router as spotify_auth_router
 from .config import get_settings
 from .SpotifyAuth import SpotifyAuth
 from .middleware import SpotifyAuthMiddleware
@@ -37,4 +38,5 @@ app.add_middleware(SpotifyAuthMiddleware, spotify_auth=spotify_auth)
 app.include_router(player_router, prefix="/api", tags=["players"])
 app.include_router(upload_router, prefix="/api", tags=["upload"])
 app.include_router(spotify_router, prefix="/api", tags=["spotify"])
+app.include_router(spotify_auth_router)
 app.mount("/images", StaticFiles(directory=IMAGES_DIR), name="images")

@@ -6,6 +6,8 @@ import Players from './components/pages/Players';
 import Contact from './components/pages/Contact';
 import Settings from './components/pages/Settings';
 import SpotifySearch from './components/pages/SpotifySearch';
+import SpotifyPlayer from './components/pages/SpotifyPlayer'; // ADD THIS
+import './styles/namethattune.css';
 
 const App = () => {
   const [currentPage, setCurrentPage] = useState('home');
@@ -22,17 +24,18 @@ const App = () => {
         return <Settings />;
       case 'spotify-search':
         return <SpotifySearch />;
+      case 'spotify-player':  // ADD THIS CASE
+        return <SpotifyPlayer />;
       default:
-        return <div>Page not found</div>;
+        return <div className="error">Page not found</div>;
     }
   };
 
   return (
-    
-    <div className="min-h-screen bg-gray-50">
+    <div className="app-container">
       <Header currentPage={currentPage} setCurrentPage={setCurrentPage} />
       
-      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <main className="main-content">
         {renderContent()}
       </main>
 
