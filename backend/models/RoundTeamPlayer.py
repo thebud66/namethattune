@@ -1,14 +1,13 @@
-from sqlalchemy import Column, Integer, String, DateTime, func, BLOB
+from sqlalchemy import Column, Integer, DateTime, func, ForeignKey
 from sqlalchemy.orm import relationship
 from ..database import Base
 
 class RoundTeamPlayer(Base):
     __tablename__ = "round_team_player"
 
-    # Column definitions
     round_team_player_id = Column(Integer, primary_key=True, index=True)
-    round_team_id = Column(Integer, nullable=False)
-    participant_id = Column(Integer, nullable=False)
+    round_team_id = Column(Integer, ForeignKey("round_team.round_team_id", ondelete="CASCADE"), nullable=False)
+    participant_id = Column(Integer, ForeignKey("participant.participant_id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     

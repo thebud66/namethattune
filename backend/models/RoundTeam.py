@@ -1,14 +1,13 @@
-from sqlalchemy import Column, Integer, String, DateTime, func, BLOB, Enum as SQLEnum
+from sqlalchemy import Column, Integer, DateTime, func, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from ..database import Base
-from.Enums import Role
+from .Enums import Role
 
 class RoundTeam(Base):
     __tablename__ = "round_team"
 
-    # Column definitions
     round_team_id = Column(Integer, primary_key=True, index=True)
-    round_id = Column(Integer, nullable=False)
+    round_id = Column(Integer, ForeignKey("round.round_id", ondelete="CASCADE"), nullable=False)
     role = Column(
         SQLEnum(Role), 
         nullable=False,

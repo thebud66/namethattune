@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, func, Boolean, Enum as SQLEnum
+from sqlalchemy import Column, Integer, DateTime, func, Boolean, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from ..database import Base
 from .Enums import ScoreType
@@ -6,11 +6,10 @@ from .Enums import ScoreType
 class RoundSonglist(Base):
     __tablename__ = "round_songlist"
 
-    # Column definitions
     round_songlist_id = Column(Integer, primary_key=True, index=True)
-    round_id = Column(Integer, nullable=False)
-    song_id = Column(Integer, nullable=False)
-    round_team_id = Column(Integer, nullable=False)
+    round_id = Column(Integer, ForeignKey("round.round_id", ondelete="CASCADE"), nullable=False)
+    song_id = Column(Integer, ForeignKey("song.song_id", ondelete="CASCADE"), nullable=False)
+    round_team_id = Column(Integer, ForeignKey("round_team.round_team_id", ondelete="CASCADE"), nullable=False)
     correct_artist_guess = Column(Boolean, default=False)
     correct_song_title_guess = Column(Boolean, default=False)
     bonus_correct_movie_guess = Column(Boolean, default=False)
@@ -26,3 +25,4 @@ class RoundSonglist(Base):
     # Relationships
     round = relationship("Round", back_populates="round_songlists")
     song = relationship("Song", back_populates="round_songlists")
+    round_team = relationship("RoundTeam")
