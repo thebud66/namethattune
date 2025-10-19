@@ -1,3 +1,4 @@
+# Update: backend/main.py
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +9,12 @@ from .routes.PlayerRoutes import router as player_router
 from .routes.GameRoutes import router as game_router
 from .routes.ParticipantRoutes import router as participant_router
 from .routes.RoundRoutes import router as round_router
+from .routes.RoundTeamRoutes import router as round_team_router
+from .routes.RoundTeamPlayerRoutes import router as round_team_player_router
+from .routes.SongRoutes import router as song_router
+from .routes.ArtistRoutes import router as artist_router
+from .routes.TrackInfoRoutes import router as track_info_router
+from .routes.RoundSonglistRoutes import router as round_songlist_router
 from .routes.UploadRoutes import router as upload_router
 from .routes.SpotifyRoutes import router as spotify_router
 from .routes.SpotifyAuthRoutes import router as spotify_auth_router
@@ -51,6 +58,12 @@ app.include_router(player_router, prefix="/api", tags=["players"])
 app.include_router(game_router, prefix="/api", tags=["games"])
 app.include_router(participant_router, prefix="/api", tags=["participants"])
 app.include_router(round_router, prefix="/api", tags=["rounds"])
+app.include_router(round_team_router, prefix="/api", tags=["round-teams"])
+app.include_router(round_team_player_router, prefix="/api", tags=["round-team-players"])
+app.include_router(song_router, prefix="/api", tags=["songs"])
+app.include_router(artist_router, prefix="/api", tags=["artists"])
+app.include_router(track_info_router, prefix="/api", tags=["track-infos"])
+app.include_router(round_songlist_router, prefix="/api", tags=["round-songlists"])
 app.include_router(upload_router, prefix="/api", tags=["upload"])
 app.include_router(spotify_router, prefix="/api", tags=["spotify"])
 app.include_router(spotify_auth_router, tags=["spotify-auth"])

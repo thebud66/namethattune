@@ -1,3 +1,4 @@
+// Update: frontend/src/App.js
 import React, { useState } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -6,16 +7,36 @@ import Players from './components/pages/Players';
 import Contact from './components/pages/Contact';
 import Settings from './components/pages/Settings';
 import SpotifySearch from './components/pages/SpotifySearch';
-import SpotifyPlayer from './components/pages/SpotifyPlayer'; // ADD THIS
+import SpotifyPlayer from './components/pages/SpotifyPlayer';
+import CurrentGame from './components/pages/CurrentGame';
+import GameSummary from './components/pages/GameSummary';
+import RoundGameplay from './components/pages/RoundGameplay';
 import './styles/namethattune.css';
 
 const App = () => {
   const [currentPage, setCurrentPage] = useState('home');
+  const [currentGameId, setCurrentGameId] = useState(null);
+  const [currentRoundId, setCurrentRoundId] = useState(null);
+
+  const handleGameEnded = (gameId) => {
+    setCurrentGameId(gameId);
+    setCurrentPage('game-summary');
+  };
+
+  const handleRoundStarted = (roundId) => {
+    setCurrentRoundId(roundId);
+    setCurrentPage('round-gameplay');
+  };
+
+  const handleRoundComplete = () => {
+    setCurrentRoundId(null);
+    setCurrentPage('current-game');
+  };
 
   const renderContent = () => {
     switch (currentPage) {
       case 'home':
-        return <Home />;
+        return <Home setCurrentPage={setCurrentPage} setCurrentGameId={setCurrentGameId} />;
       case 'players':
         return <Players />;
       case 'contact':
@@ -24,8 +45,14 @@ const App = () => {
         return <Settings />;
       case 'spotify-search':
         return <SpotifySearch />;
-      case 'spotify-player':  // ADD THIS CASE
+      case 'spotify-player':
         return <SpotifyPlayer />;
+      case 'current-game':
+        return <CurrentGame gameId={currentGameId} onGameEnded={handleGameEnded} onRoundStarted={handleRoundStarted} />;
+      case 'game-summary':
+        return <GameSummary gameId={currentGameId} setCurrentPage={setCurrentPage} />;
+      case 'round-gameplay':
+        return <RoundGameplay gameId={currentGameId} roundId={currentRoundId} onRoundComplete={handleRoundComplete} />;
       default:
         return <div className="error">Page not found</div>;
     }
