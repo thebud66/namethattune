@@ -9,6 +9,7 @@ from .Artist import Artist
 from .TrackInfo import TrackInfo
 from .RoundSonglist import RoundSonglist
 from .Enums import ScoreType, Role
+from .GameplaySettings import GameplaySettings
 
 __all__ = [
     "Player",
@@ -22,5 +23,6 @@ __all__ = [
     "TrackInfo",
     "RoundSonglist",
     "ScoreType",
-    "Role"
+    "Role",
+    "GameplaySettings"
 ]

@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from . import database
-from .models import Player, Game, Participant, Round, RoundTeam, RoundTeamPlayer, Song, Artist, TrackInfo, RoundSonglist
+from .models import Player, Game, Participant, Round, RoundTeam, RoundTeamPlayer, Song, Artist, TrackInfo, RoundSonglist, GameplaySettings
 from .routes.PlayerRoutes import router as player_router
 from .routes.GameRoutes import router as game_router
 from .routes.ParticipantRoutes import router as participant_router
@@ -18,6 +18,7 @@ from .routes.RoundSonglistRoutes import router as round_songlist_router
 from .routes.UploadRoutes import router as upload_router
 from .routes.SpotifyRoutes import router as spotify_router
 from .routes.SpotifyAuthRoutes import router as spotify_auth_router
+from .routes.GameplaySettingsRoutes import router as gameplay_settings_router
 from .config import get_settings
 from .SpotifyAuth import SpotifyAuth
 from .middleware import SpotifyAuthMiddleware
@@ -67,6 +68,7 @@ app.include_router(round_songlist_router, prefix="/api", tags=["round-songlists"
 app.include_router(upload_router, prefix="/api", tags=["upload"])
 app.include_router(spotify_router, prefix="/api", tags=["spotify"])
 app.include_router(spotify_auth_router, tags=["spotify-auth"])
+app.include_router(gameplay_settings_router, prefix="/api", tags=["gameplay-settings"])
 
 # Static files
 app.mount("/images", StaticFiles(directory=IMAGES_DIR), name="images")

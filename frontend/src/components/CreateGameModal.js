@@ -95,6 +95,16 @@ const CreateGameModal = ({ onClose, onGameCreated }) => {
     return selectedPlayers.some(p => p.player_id === playerId);
   };
 
+  if (loading) {
+    return (
+      <div className="modal-overlay">
+        <div className="modal">
+          <div className="loading">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="modal-overlay">
       <div className="modal" style={{ maxWidth: '900px', maxHeight: '85vh' }}>
@@ -112,9 +122,7 @@ const CreateGameModal = ({ onClose, onGameCreated }) => {
           </div>
         )}
 
-        {loading ? (
-          <div className="loading">Loading players...</div>
-        ) : players.length === 0 ? (
+        {players.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon"><Users size={48} /></div>
             <div className="empty-state-text">No players available. Please add players first.</div>
@@ -182,25 +190,21 @@ const CreateGameModal = ({ onClose, onGameCreated }) => {
               </h3>
               {selectedPlayers.length === 0 ? (
                 <div style={{ 
-                  padding: '40px 20px', 
-                  textAlign: 'center', 
-                  backgroundColor: '#f9fafb',
-                  borderRadius: '10px',
+                  flex: 1, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
                   color: '#9ca3af',
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+                  fontSize: '14px',
+                  fontStyle: 'italic',
+                  border: '2px dashed #e5e7eb',
+                  borderRadius: '10px',
+                  padding: '20px'
                 }}>
-                  Select at least 2 players to start
+                  Click players to select them
                 </div>
               ) : (
-                <div style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '8px',
-                  flex: 1
-                }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, alignContent: 'start' }}>
                   {selectedPlayers.map((player, index) => (
                     <div
                       key={player.player_id}
@@ -212,26 +216,26 @@ const CreateGameModal = ({ onClose, onGameCreated }) => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '10px',
-                        padding: '10px',
+                        padding: '8px 12px',
                         backgroundColor: 'white',
                         border: '2px solid #e5e7eb',
-                        borderRadius: '10px',
-                        cursor: 'move',
+                        borderRadius: '8px',
+                        cursor: 'grab',
                         transition: 'all 0.2s ease'
                       }}
                     >
-                      <GripVertical size={18} style={{ color: '#9ca3af', flexShrink: 0 }} />
-                      <div style={{
+                      <GripVertical size={16} style={{ color: '#9ca3af', flexShrink: 0 }} />
+                      <div style={{ 
+                        width: '24px', 
+                        height: '24px', 
+                        borderRadius: '50%', 
                         backgroundColor: '#667eea',
                         color: 'white',
-                        width: '26px',
-                        height: '26px',
-                        borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '13px',
                         fontWeight: 600,
+                        fontSize: '12px',
                         flexShrink: 0
                       }}>
                         {index + 1}

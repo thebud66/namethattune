@@ -228,3 +228,78 @@ async def get_recently_played(
         return [Track.from_dict(item['track']) for item in data['items']]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# backend/routes/SpotifyRoutes.py
+# Add these routes to the existing router
+
+@router.put("/me/player/pause")
+async def pause_playback(service: SpotifyService = Depends(get_spotify_service)):
+    """Pause playback on the user's active device"""
+    try:
+        service.pause_playback()
+        return {"message": "Playback paused"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/me/player/play")
+async def start_playback(
+    request: SpotifyBase.PlaybackRequest,
+    service: SpotifyService = Depends(get_spotify_service)
+):
+    """Start or resume playback"""
+    try:
+        service.start_playback(
+            context_uri=request.context_uri,
+            uris=request.uris,
+            position_ms=request.position_ms,
+            offset=request.offset
+        )
+        return {"message": "Playback started"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/me/player/next")
+async def skip_to_next(service: SpotifyService = Depends(get_spotify_service)):
+    """Skip to next track"""
+    try:
+        service.skip_to_next()
+        return {"message": "Skipped to next track"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/me/player/previous")
+async def skip_to_previous(service: SpotifyService = Depends(get_spotify_service)):
+    """Skip to previous track"""
+    try:
+        service.skip_to_previous()
+        return {"message": "Skipped to previous track"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/me/player")
+async def get_playback_state(service: SpotifyService = Depends(get_spotify_service)):
+    """Get current playback state"""
+    try:
+        data = service.get_playback_state()
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/playlists/{playlist_id}/tracks/paginated")
+async def get_playlist_tracks_paginated(
+    playlist_id: str,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    service: SpotifyService = Depends(get_spotify_service)
+):
+    """Get playlist tracks with pagination"""
+    try:
+        data = service.get_playlist_tracks_paginated(playlist_id, offset, limit)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

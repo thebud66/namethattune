@@ -1,3 +1,6 @@
+# backend/methods/GameMethods.py
+# Update the create_game and update_game methods
+
 from sqlalchemy.orm import Session, joinedload, selectinload
 from ..models.Game import Game
 from ..models.Participant import Participant
@@ -36,7 +39,9 @@ def create_game(db: Session, game: GameCreate):
     """Create a new game"""
     db_game = Game(
         started_at=game.started_at,
-        ended_at=game.ended_at
+        ended_at=game.ended_at,
+        playlist_id=game.playlist_id,  # NEW
+        current_track_index=game.current_track_index  # NEW
     )
     db.add(db_game)
     db.commit()

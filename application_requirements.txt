@@ -1,11 +1,14 @@
-1. When you click "Start Round"
-    a. If a track is currently playing, pause it.
-        PUT /me/player/pause
+1. When starting a new game, we should pick a playlist in spotify.  We should store this playlist ID in the game table
+2. When you click "Start Round"
+    a. Check spotify to see if a track is currently playing, if it is, pause it.
 2. When clicking "Play First Song", or "Next Song"
     a. Start next song in playlist
-        PUT /me/player/next
     b. capture track info and capture it
-        GET /me/player/currently-playing
-    c. Display album art, song title, artist name
-3. When ending a round, pause playback
-    PUT /me/player/pause
+    c. Display album art, song title, artist name on the scoring screen
+3. When saving the score, pause playback
+4. When ending a round, pause playback
+
+
+steps 2 - 4 should replace the current logic to search for and pick a song.
+
+"5V6eg0nvIkqqXGt6RXLTqJ"

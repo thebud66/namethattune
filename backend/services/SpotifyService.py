@@ -100,4 +100,101 @@ class SpotifyService:
     def get_recently_played(self, limit: int = 20) -> Dict[str, Any]:
         return self._get("me/player/recently-played", params={"limit": limit})
 
+    def pause_playback(self) -> None:
+        """Pause playback on the user's active device"""
+        self._put("me/player/pause")
 
+    def start_playback(self, context_uri: str = None, uris: List[str] = None, 
+                    position_ms: int = 0, offset: Dict[str, Any] = None) -> None:
+        """Start or resume playback
+        
+        Args:
+            context_uri: Spotify URI of context (album, artist, playlist)
+            uris: List of Spotify track URIs to play
+            position_ms: Position in milliseconds to start playback
+            offset: Indicates from where in context playback should start
+        """
+        data = {}
+        if context_uri:
+            data["context_uri"] = context_uri
+        if uris:
+            data["uris"] = uris
+        if position_ms:
+            data["position_ms"] = position_ms
+        if offset:
+            data["offset"] = offset
+        
+        self._put("me/player/play", data=data)
+
+    def skip_to_next(self) -> None:
+        """Skip to next track in user's queue"""
+        self._post("me/player/next")
+
+    def skip_to_previous(self) -> None:
+        """Skip to previous track in user's queue"""
+        self._post("me/player/previous")
+
+    def get_playback_state(self) -> Dict[str, Any]:
+        """Get information about user's current playback"""
+        return self._get("me/player")
+
+    def get_playlist_tracks_paginated(self, playlist_id: str, offset: int = 0, 
+                                    limit: int = 100) -> Dict[str, Any]:
+        """Get playlist tracks with pagination support"""
+        return self._get(f"playlists/{playlist_id}/tracks", 
+                        params={"limit": limit, "offset": offset})
+
+    # backend/services/SpotifyService.py
+    # Add these methods to the existing SpotifyService class
+
+    def pause_playback(self) -> None:
+        """Pause playback on the user's active device"""
+        self._put("me/player/pause")
+
+    def start_playback(self, context_uri: str = None, uris: List[str] = None, 
+                    position_ms: int = 0, offset: Dict[str, Any] = None) -> None:
+        """Start or resume playback
+        
+        Args:
+            context_uri: Spotify URI of context (album, artist, playlist)
+            uris: List of Spotify track URIs to play
+            position_ms: Position in milliseconds to start playback
+            offset: Indicates from where in context playback should start
+        """
+        data = {}
+        if context_uri:
+            data["context_uri"] = context_uri
+        if uris:
+            data["uris"] = uris
+        if position_ms:
+            data["position_ms"] = position_ms
+        if offset:
+            data["offset"] = offset
+        
+        self._put("me/player/play", data=data)
+
+    def set_shuffle(self, state: bool) -> None:
+        """Toggle shuffle on or off for user's playback
+        
+        Args:
+            state: True to turn on shuffle, False to turn off
+        """
+        self._put("me/player/shuffle", params={"state": str(state).lower()})
+
+    def skip_to_next(self) -> None:
+        """Skip to next track in user's queue"""
+        self._post("me/player/next")
+
+    def skip_to_previous(self) -> None:
+        """Skip to previous track in user's queue"""
+        self._post("me/player/previous")
+
+    def get_playback_state(self) -> Dict[str, Any]:
+        """Get information about user's current playback"""
+        return self._get("me/player")
+
+    def get_playlist_tracks_paginated(self, playlist_id: str, offset: int = 0, 
+                                    limit: int = 100) -> Dict[str, Any]:
+        """Get playlist tracks with pagination support"""
+        return self._get(f"playlists/{playlist_id}/tracks", 
+                        params={"limit": limit, "offset": offset})

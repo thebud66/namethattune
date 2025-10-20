@@ -9,6 +9,7 @@ from . import ArtistBase
 from . import TrackInfoBase
 from . import RoundSonglistBase
 from . import SpotifyBase
+from . import GameplaySettingsBase
 
 __all__ = [
     "PlayerBase",
@@ -21,5 +22,6 @@ __all__ = [
     "ArtistBase",
     "TrackInfoBase",
     "RoundSonglistBase",
-    "SpotifyBase"
+    "SpotifyBase",
+    "GameplaySettingsBase"
 ]
