@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from ..models.Round import Round
 from ..models.RoundTeam import RoundTeam
 from ..models.RoundSonglist import RoundSonglist
+from ..models.TrackInfo import TrackInfo
+from ..models.Artist import Artist
 from ..schemas.RoundBase import RoundCreate, RoundUpdate
 
 def get_round(db: Session, round_id: int):
@@ -19,6 +21,12 @@ def get_rounds_by_game(db: Session, game_id: int):
         .order_by(Round.round_number)\
         .all()
 
+def get_active_round_for_game(db: Session, game_id: int):
+    """Get the active (incomplete) round for a game, if any"""
+    return db.query(Round)\
+        .filter(Round.game_id == game_id, Round.is_complete == False)\
+        .first()
+
 def get_round_with_teams(db: Session, round_id: int):
     """Get round with teams and their players"""
     return db.query(Round)\
@@ -30,11 +38,16 @@ def get_round_with_teams(db: Session, round_id: int):
         .first()
 
 def get_round_with_details(db: Session, round_id: int):
-    """Get round with all details (teams and songs)"""
+    """Get round with all details (teams and songs with full info)"""
     return db.query(Round)\
         .options(
-            selectinload(Round.round_teams),
-            selectinload(Round.round_songlists).joinedload(RoundSonglist.song)
+            selectinload(Round.round_teams)
+            .selectinload(RoundTeam.round_team_players),
+            selectinload(Round.round_songlists)
+            .joinedload(RoundSonglist.song),
+            selectinload(Round.round_songlists)
+            .joinedload(RoundSonglist.track_info)
+            .joinedload(TrackInfo.artist)
         )\
         .filter(Round.round_id == round_id)\
         .first()
@@ -43,7 +56,8 @@ def create_round(db: Session, round: RoundCreate):
     """Create a new round"""
     db_round = Round(
         game_id=round.game_id,
-        round_number=round.round_number
+        round_number=round.round_number,
+        is_complete=False
     )
     db.add(db_round)
     db.commit()

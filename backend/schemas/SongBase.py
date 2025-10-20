@@ -4,12 +4,13 @@ from typing import Optional
 
 class SongBase(BaseModel):
     spotify_id: str
+    title: str  # NEW
 
 class SongCreate(SongBase):
     pass
 
-class SongUpdate(SongBase):
-    pass
+class SongUpdate(BaseModel):
+    title: Optional[str] = None
 
 class Song(SongBase):
     """Basic song without relationships"""
@@ -18,4 +19,3 @@ class Song(SongBase):
     updated_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
-

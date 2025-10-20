@@ -41,10 +41,10 @@ const SongScoring = ({ song, hasPlayers, hasStealer, onClose, onScoreSubmit }) =
           marginBottom: '24px'
         }}>
           <div style={{ fontWeight: 600, fontSize: '18px', color: '#1f2937', marginBottom: '4px' }}>
-            {song.spotify_data?.name || 'Song Title'}
+            {song.song?.title || 'Song Title'}
           </div>
           <div style={{ fontSize: '15px', color: '#6b7280' }}>
-            {song.spotify_data?.artists?.map(a => a.name).join(', ') || 'Artist'}
+            {song.track_info?.artist?.name || 'Artist'}
           </div>
         </div>
 

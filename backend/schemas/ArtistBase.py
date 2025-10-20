@@ -4,12 +4,13 @@ from typing import Optional
 
 class ArtistBase(BaseModel):
     spotify_id: str
+    name: str  # NEW
     
 class ArtistCreate(ArtistBase):
     pass
 
-class ArtistUpdate(ArtistBase):
-    pass
+class ArtistUpdate(BaseModel):
+    name: Optional[str] = None
 
 class Artist(ArtistBase):
     """Basic artist without relationships"""

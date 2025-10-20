@@ -1,8 +1,6 @@
-// Save as: frontend/src/components/pages/RoundGameplay.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Music, Play, SkipForward, CheckCircle, Award } from 'lucide-react';
-import { getRoleColor } from '../../utils/roundHelpers';
 import SongSelector from '../SongSelector';
 import SongScoring from '../SongScoring';
 
@@ -19,8 +17,17 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
   const SONGS_PER_ROUND = 10;
 
   useEffect(() => {
-    fetchRoundDetails();
+    const initializeRound = async () => {
+      const songsCount = await fetchRoundDetails();
+      // Set currentSongIndex to songs.length (ready for next song or first song if 0)
+      setCurrentSongIndex(songsCount);
+      console.log('Initialized round with', songsCount, 'songs, currentSongIndex set to', songsCount);
+    };
+    
+    initializeRound();
   }, [roundId]);
+
+  // Remove the problematic useEffect that was managing currentSongIndex
 
   const fetchRoundDetails = async () => {
     try {
@@ -41,11 +48,16 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
       // Fetch existing songs for this round
       if (response.data.round_songlists) {
         setSongs(response.data.round_songlists);
-        setCurrentSongIndex(response.data.round_songlists.length);
+        console.log('Songs loaded:', response.data.round_songlists.length);
+        
+        // Return the new songs array length so callers can use it
+        return response.data.round_songlists.length;
       }
+      return 0;
     } catch (error) {
       console.error('Error fetching round details:', error);
       setError('Failed to load round details');
+      return 0;
     } finally {
       setLoading(false);
     }
@@ -53,46 +65,56 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
 
   const handleSongSelected = async (spotifyTrack) => {
     try {
-      // First, ensure artist exists
+      console.log('Song selected:', spotifyTrack);
+      
+      // First, ensure artist exists with name
       const artistResponse = await axios.post('http://localhost:8000/api/artists/', {
-        spotify_id: spotifyTrack.artists[0].id
+        spotify_id: spotifyTrack.artists[0].id,
+        name: spotifyTrack.artists[0].name
       });
       const artistId = artistResponse.data.artist_id;
 
-      // Ensure song exists
+      // Ensure song exists with title
       const songResponse = await axios.post('http://localhost:8000/api/songs/', {
-        spotify_id: spotifyTrack.id
+        spotify_id: spotifyTrack.id,
+        title: spotifyTrack.name
       });
       const songId = songResponse.data.song_id;
 
       // Ensure track_info exists
-      await axios.post('http://localhost:8000/api/track-infos/', {
+      const trackInfoResponse = await axios.post('http://localhost:8000/api/track-infos/', {
         song_id: songId,
         artist_id: artistId
       });
+      const trackInfoId = trackInfoResponse.data.track_info_id;
 
-      // Create round songlist entry (with player team as default)
+      // Create round songlist entry
       const playerTeam = round.round_teams.find(t => t.role === 'player');
-      const songlistResponse = await axios.post('http://localhost:8000/api/round-songlists/', {
+      await axios.post('http://localhost:8000/api/round-songlists/', {
         round_id: roundId,
         song_id: songId,
         round_team_id: playerTeam.round_team_id,
+        track_info_id: trackInfoId,
         correct_artist_guess: false,
         correct_song_title_guess: false,
         bonus_correct_movie_guess: false,
         score_type: 'standard'
       });
 
-      // Add to local state with spotify data
-      setSongs([...songs, { 
-        ...songlistResponse.data, 
-        spotify_data: spotifyTrack 
-      }]);
-      
       setShowSongSelector(false);
+      
+      // Refresh to get full details and get the new songs count
+      const newSongsLength = await fetchRoundDetails();
+      
+      // Set index to the last song (the one we just added) for scoring
+      setCurrentSongIndex(newSongsLength - 1);
+      
+      // Show scoring modal
       setShowScoring(true);
+      console.log('Opening scoring modal for song at index:', newSongsLength - 1);
     } catch (error) {
       console.error('Error saving song:', error);
+      console.error('Error details:', error.response?.data);
       setError('Failed to save song. Please try again.');
     }
   };
@@ -100,6 +122,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
   const handleScoringComplete = async (scoringData) => {
     try {
       const currentSong = songs[currentSongIndex];
+      console.log('Scoring song:', currentSong, 'at index:', currentSongIndex);
       
       // Determine which team gets the points
       const targetTeamId = scoringData.wasStolen ? 
@@ -115,15 +138,14 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
         score_type: scoringData.wasStolen ? 'steal' : 'standard'
       });
 
-      // Refresh songs list
-      await fetchRoundDetails();
-      
       setShowScoring(false);
       
-      // Move to next song
-      if (currentSongIndex < SONGS_PER_ROUND - 1) {
-        setCurrentSongIndex(currentSongIndex + 1);
-      }
+      // Refresh songs list to get updated data and get the new length
+      const newSongsLength = await fetchRoundDetails();
+      
+      // Move index to "ready for next song" position
+      setCurrentSongIndex(newSongsLength);
+      console.log('Set currentSongIndex to:', newSongsLength, '(ready for next song)');
     } catch (error) {
       console.error('Error saving score:', error);
       setError('Failed to save score. Please try again.');
@@ -136,12 +158,27 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
     }
 
     try {
+      // Mark the round as complete
+      await axios.put(`http://localhost:8000/api/rounds/${roundId}`, {
+        is_complete: true
+      });
+      console.log('Round marked as complete');
+      
       // Navigate back to current game
       onRoundComplete();
     } catch (error) {
       console.error('Error ending round:', error);
       setError('Failed to end round');
     }
+  };
+
+  const getRoleColor = (role) => {
+    const colorMap = {
+      dj: '#f59e0b',
+      player: '#667eea',
+      stealer: '#10b981'
+    };
+    return colorMap[role] || '#6b7280';
   };
 
   if (loading) {
@@ -162,6 +199,13 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
 
   const isRoundComplete = songs.length >= SONGS_PER_ROUND;
   const canPlayNext = currentSongIndex === songs.length && !isRoundComplete;
+
+  console.log('Render state:', {
+    songsLength: songs.length,
+    currentSongIndex,
+    isRoundComplete,
+    canPlayNext
+  });
 
   return (
     <div className="container">
@@ -305,10 +349,10 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
                     <Music size={20} style={{ color: '#667eea' }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600, color: '#1f2937' }}>
-                        {song.spotify_data?.name || 'Song Title'}
+                        {song.song?.title || 'Song Title'}
                       </div>
                       <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                        {song.spotify_data?.artists?.map(a => a.name).join(', ') || 'Artist'}
+                        {song.track_info?.artist?.name || 'Artist'}
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -364,7 +408,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
         />
       )}
 
-      {showScoring && songs[currentSongIndex] && (
+      {showScoring && songs.length > currentSongIndex && songs[currentSongIndex] && (
         <SongScoring
           song={songs[currentSongIndex]}
           hasPlayers={roles.players.length > 0}

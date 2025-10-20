@@ -1,4 +1,3 @@
-# Save as: backend/routes/ArtistRoutes.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
@@ -27,10 +26,36 @@ def create_artist(artist: ArtistBase.ArtistCreate, db: Session = Depends(databas
     # Check if artist already exists
     existing = db.query(Artist).filter(Artist.spotify_id == artist.spotify_id).first()
     if existing:
+        # Update name if it's different
+        if existing.name != artist.name:
+            existing.name = artist.name
+            db.commit()
+            db.refresh(existing)
         return existing
     
-    db_artist = Artist(spotify_id=artist.spotify_id)
+    db_artist = Artist(
+        spotify_id=artist.spotify_id,
+        name=artist.name
+    )
     db.add(db_artist)
+    db.commit()
+    db.refresh(db_artist)
+    return db_artist
+
+@router.put("/{artist_id}", response_model=ArtistBase.Artist)
+def update_artist(
+    artist_id: int,
+    artist: ArtistBase.ArtistUpdate,
+    db: Session = Depends(database.get_db)
+):
+    """Update an artist"""
+    db_artist = db.query(Artist).filter(Artist.artist_id == artist_id).first()
+    if db_artist is None:
+        raise HTTPException(status_code=404, detail="Artist not found")
+    
+    if artist.name is not None:
+        db_artist.name = artist.name
+    
     db.commit()
     db.refresh(db_artist)
     return db_artist

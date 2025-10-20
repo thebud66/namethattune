@@ -1,4 +1,3 @@
-# Save as: backend/routes/SongRoutes.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
@@ -27,10 +26,36 @@ def create_song(song: SongBase.SongCreate, db: Session = Depends(database.get_db
     # Check if song already exists
     existing = db.query(Song).filter(Song.spotify_id == song.spotify_id).first()
     if existing:
+        # Update title if it's different
+        if existing.title != song.title:
+            existing.title = song.title
+            db.commit()
+            db.refresh(existing)
         return existing
     
-    db_song = Song(spotify_id=song.spotify_id)
+    db_song = Song(
+        spotify_id=song.spotify_id,
+        title=song.title
+    )
     db.add(db_song)
+    db.commit()
+    db.refresh(db_song)
+    return db_song
+
+@router.put("/{song_id}", response_model=SongBase.Song)
+def update_song(
+    song_id: int,
+    song: SongBase.SongUpdate,
+    db: Session = Depends(database.get_db)
+):
+    """Update a song"""
+    db_song = db.query(Song).filter(Song.song_id == song_id).first()
+    if db_song is None:
+        raise HTTPException(status_code=404, detail="Song not found")
+    
+    if song.title is not None:
+        db_song.title = song.title
+    
     db.commit()
     db.refresh(db_song)
     return db_song

@@ -1,20 +1,22 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
-from .RoundTeamBase import RoundTeamWithPlayers
-from .RoundTeamBase import RoundTeam
-from .RoundSonglistBase import RoundSonglist
-from .RoundSonglistBase import RoundSonglistWithSong
+from .RoundTeamBase import RoundTeamWithPlayers, RoundTeam
+from .RoundSonglistBase import RoundSonglist, RoundSonglistWithDetails
 
 class RoundBase(BaseModel):
     game_id: int
     round_number: int
+    is_complete: bool = False  # NEW
 
-class RoundCreate(RoundBase):
-    pass
+class RoundCreate(BaseModel):
+    game_id: int
+    round_number: int
+    # is_complete defaults to False, not included in create
 
 class RoundUpdate(BaseModel):
     round_number: Optional[int] = None
+    is_complete: Optional[bool] = None  # NEW
 
 class Round(RoundBase):
     """Basic round without relationships"""
@@ -37,8 +39,8 @@ class RoundWithSongs(Round):
     model_config = {"from_attributes": True}
 
 class RoundWithDetails(Round):
-    """Round with teams and songs"""
+    """Round with teams and songs with full details"""
     round_teams: List[RoundTeamWithPlayers] = []
-    round_songlists: List[RoundSonglistWithSong] = []
+    round_songlists: List[RoundSonglistWithDetails] = []
     
     model_config = {"from_attributes": True}

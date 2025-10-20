@@ -1,6 +1,5 @@
-# Save as: backend/routes/RoundSonglistRoutes.py
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 from ..models.RoundSonglist import RoundSonglist
 from ..schemas import RoundSonglistBase
@@ -13,12 +12,17 @@ def list_round_songlists(skip: int = 0, limit: int = 100, db: Session = Depends(
     """Get all round songlists"""
     return db.query(RoundSonglist).offset(skip).limit(limit).all()
 
-@router.get("/{round_songlist_id}", response_model=RoundSonglistBase.RoundSonglistWithSong)
+@router.get("/{round_songlist_id}", response_model=RoundSonglistBase.RoundSonglistWithDetails)
 def get_round_songlist(round_songlist_id: int, db: Session = Depends(database.get_db)):
-    """Get a round songlist by ID with song details"""
-    songlist = db.query(RoundSonglist).filter(
-        RoundSonglist.round_songlist_id == round_songlist_id
-    ).first()
+    """Get a round songlist by ID with full details"""
+    songlist = db.query(RoundSonglist)\
+        .options(
+            joinedload(RoundSonglist.song),
+            joinedload(RoundSonglist.track_info).joinedload('artist')
+        )\
+        .filter(RoundSonglist.round_songlist_id == round_songlist_id)\
+        .first()
+    
     if songlist is None:
         raise HTTPException(status_code=404, detail="Round songlist not found")
     return songlist
@@ -33,6 +37,7 @@ def create_round_songlist(
         round_id=songlist.round_id,
         song_id=songlist.song_id,
         round_team_id=songlist.round_team_id,
+        track_info_id=songlist.track_info_id,
         correct_artist_guess=songlist.correct_artist_guess,
         correct_song_title_guess=songlist.correct_song_title_guess,
         bonus_correct_movie_guess=songlist.bonus_correct_movie_guess,

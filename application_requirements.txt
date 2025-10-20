@@ -1,0 +1,11 @@
+1. When you click "Start Round"
+    a. If a track is currently playing, pause it.
+        PUT /me/player/pause
+2. When clicking "Play First Song", or "Next Song"
+    a. Start next song in playlist
+        PUT /me/player/next
+    b. capture track info and capture it
+        GET /me/player/currently-playing
+    c. Display album art, song title, artist name
+3. When ending a round, pause playback
+    PUT /me/player/pause

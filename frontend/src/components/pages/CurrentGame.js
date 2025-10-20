@@ -6,6 +6,7 @@ import RoundSetupModal from '../RoundSetupModal';
 
 const CurrentGame = ({ gameId, onGameEnded, onRoundStarted }) => {
   const [game, setGame] = useState(null);
+  const [activeRound, setActiveRound] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showRoundSetup, setShowRoundSetup] = useState(false);
@@ -13,6 +14,7 @@ const CurrentGame = ({ gameId, onGameEnded, onRoundStarted }) => {
   useEffect(() => {
     if (gameId) {
       fetchGameDetails();
+      checkForActiveRound();
     }
   }, [gameId]);
 
@@ -25,6 +27,24 @@ const CurrentGame = ({ gameId, onGameEnded, onRoundStarted }) => {
       setError('Failed to load game details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkForActiveRound = async () => {
+    try {
+      const response = await axios.get(`http://localhost:8000/api/rounds/game/${gameId}/active`);
+      setActiveRound(response.data);
+      console.log('Active round found:', response.data);
+      console.log('Round is_complete:', response.data.is_complete);
+      console.log('Round songs:', response.data.round_songlists?.length);
+    } catch (error) {
+      // 404 means no active round, which is fine
+      if (error.response?.status === 404) {
+        console.log('No active round found (404)');
+        setActiveRound(null);
+      } else {
+        console.error('Error checking for active round:', error);
+      }
     }
   };
 
@@ -62,6 +82,12 @@ const CurrentGame = ({ gameId, onGameEnded, onRoundStarted }) => {
     onRoundStarted(roundId);
   };
 
+  const handleContinueRound = () => {
+    if (activeRound) {
+      onRoundStarted(activeRound.round_id);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container">
@@ -95,6 +121,44 @@ const CurrentGame = ({ gameId, onGameEnded, onRoundStarted }) => {
         <h1>Current Game</h1>
         <p className="subtitle">Game #{game.game_id}</p>
       </div>
+
+      {/* Active Round Notice */}
+      {activeRound && (
+        <div style={{
+          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          color: 'white',
+          padding: '20px',
+          borderRadius: '12px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div>
+            <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '5px' }}>
+              Round {activeRound.round_number} In Progress
+            </div>
+            <div style={{ fontSize: '14px', opacity: 0.9 }}>
+              {activeRound.round_songlists?.length || 0} of 10 songs played
+            </div>
+          </div>
+          <button 
+            onClick={handleContinueRound}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: 'white',
+              color: '#10b981',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '15px',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            Continue Round
+          </button>
+        </div>
+      )}
 
       {/* Game Info Card */}
       <div style={{
@@ -208,12 +272,14 @@ const CurrentGame = ({ gameId, onGameEnded, onRoundStarted }) => {
 
       {/* Game Actions */}
       <div style={{ marginTop: '40px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
-        <button 
-          className="btn-primary"
-          onClick={() => setShowRoundSetup(true)}
-        >
-          Start Round
-        </button>
+        {!activeRound && (
+          <button 
+            className="btn-primary"
+            onClick={() => setShowRoundSetup(true)}
+          >
+            Start Round
+          </button>
+        )}
         <button 
           className="btn-secondary"
           onClick={handleEndGame}

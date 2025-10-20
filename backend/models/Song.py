@@ -7,6 +7,7 @@ class Song(Base):
 
     song_id = Column(Integer, primary_key=True, index=True)
     spotify_id = Column(String(100), unique=True, nullable=False)
+    title = Column(String(255), nullable=False)  # NEW: Song title
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     

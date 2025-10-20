@@ -1,14 +1,16 @@
-# Update: backend/schemas/RoundSonglistBase.py
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 from ..models.Enums import ScoreType 
 from .SongBase import Song
+from .ArtistBase import Artist
+from .TrackInfoBase import TrackInfo
 
 class RoundSonglistBase(BaseModel):
     round_id: int
     song_id: int
     round_team_id: int
+    track_info_id: int  # NEW
     correct_artist_guess: bool = False
     correct_song_title_guess: bool = False
     bonus_correct_movie_guess: bool = False
@@ -32,8 +34,9 @@ class RoundSonglist(RoundSonglistBase):
 
     model_config = {"from_attributes": True}
 
-class RoundSonglistWithSong(RoundSonglist):
-    """With song details"""
+class RoundSonglistWithDetails(RoundSonglist):
+    """With song, artist, and track info details"""
     song: Song
+    track_info: TrackInfo
     
     model_config = {"from_attributes": True}

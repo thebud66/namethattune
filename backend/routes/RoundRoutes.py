@@ -12,6 +12,22 @@ def list_rounds(skip: int = 0, limit: int = 100, db: Session = Depends(database.
     """Get all rounds"""
     return RoundMethods.get_rounds(db, skip=skip, limit=limit)
 
+# IMPORTANT: More specific routes MUST come before generic routes with path parameters
+@router.get("/game/{game_id}/active", response_model=RoundBase.RoundWithDetails)
+def get_active_round(game_id: int, db: Session = Depends(database.get_db)):
+    """Get the active (incomplete) round for a game"""
+    round_obj = RoundMethods.get_active_round_for_game(db, game_id=game_id)
+    if round_obj is None:
+        raise HTTPException(status_code=404, detail="No active round found")
+    
+    # Get full details for the active round
+    return RoundMethods.get_round_with_details(db, round_id=round_obj.round_id)
+
+@router.get("/game/{game_id}", response_model=List[RoundBase.Round])
+def get_rounds_by_game(game_id: int, db: Session = Depends(database.get_db)):
+    """Get all rounds for a specific game"""
+    return RoundMethods.get_rounds_by_game(db, game_id=game_id)
+
 @router.get("/{round_id}", response_model=RoundBase.Round)
 def get_round(round_id: int, db: Session = Depends(database.get_db)):
     """Get a single round"""
@@ -19,11 +35,6 @@ def get_round(round_id: int, db: Session = Depends(database.get_db)):
     if round_obj is None:
         raise HTTPException(status_code=404, detail="Round not found")
     return round_obj
-
-@router.get("/game/{game_id}", response_model=List[RoundBase.Round])
-def get_rounds_by_game(game_id: int, db: Session = Depends(database.get_db)):
-    """Get all rounds for a specific game"""
-    return RoundMethods.get_rounds_by_game(db, game_id=game_id)
 
 @router.get("/{round_id}/with-teams", response_model=RoundBase.RoundWithTeams)
 def get_round_with_teams(round_id: int, db: Session = Depends(database.get_db)):

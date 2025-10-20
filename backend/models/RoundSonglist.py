@@ -10,6 +10,7 @@ class RoundSonglist(Base):
     round_id = Column(Integer, ForeignKey("round.round_id", ondelete="CASCADE"), nullable=False)
     song_id = Column(Integer, ForeignKey("song.song_id", ondelete="CASCADE"), nullable=False)
     round_team_id = Column(Integer, ForeignKey("round_team.round_team_id", ondelete="CASCADE"), nullable=False)
+    track_info_id = Column(Integer, ForeignKey("track_info.track_info_id", ondelete="CASCADE"), nullable=False)  # NEW
     correct_artist_guess = Column(Boolean, default=False)
     correct_song_title_guess = Column(Boolean, default=False)
     bonus_correct_movie_guess = Column(Boolean, default=False)
@@ -26,3 +27,4 @@ class RoundSonglist(Base):
     round = relationship("Round", back_populates="round_songlists")
     song = relationship("Song", back_populates="round_songlists")
     round_team = relationship("RoundTeam")
+    track_info = relationship("TrackInfo")  # NEW

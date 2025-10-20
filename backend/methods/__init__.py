@@ -1,3 +1,4 @@
+# backend/methods/__init__.py
 from .PlayerMethods import (
     get_player,
     get_players,
@@ -30,6 +31,7 @@ from .RoundMethods import (
     get_round,
     get_rounds,
     get_rounds_by_game,
+    get_active_round_for_game,  # NEW
     get_round_with_teams,
     get_round_with_details,
     create_round,
@@ -67,6 +69,7 @@ class RoundMethods:
     get_round = get_round
     get_rounds = get_rounds
     get_rounds_by_game = get_rounds_by_game
+    get_active_round_for_game = get_active_round_for_game  # NEW
     get_round_with_teams = get_round_with_teams
     get_round_with_details = get_round_with_details
     create_round = create_round
