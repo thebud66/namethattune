@@ -101,15 +101,18 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
     try {
       const currentSong = songs[currentSongIndex];
       
+      // Determine which team gets the points
+      const targetTeamId = scoringData.wasStolen ? 
+        round.round_teams.find(t => t.role === 'stealer')?.round_team_id :
+        round.round_teams.find(t => t.role === 'player')?.round_team_id;
+      
       // Update the round songlist with scoring
       await axios.put(`http://localhost:8000/api/round-songlists/${currentSong.round_songlist_id}`, {
+        round_team_id: targetTeamId,
         correct_artist_guess: scoringData.correctArtist,
         correct_song_title_guess: scoringData.correctSong,
         bonus_correct_movie_guess: scoringData.correctMovie,
-        score_type: scoringData.wasStolen ? 'steal' : 'standard',
-        round_team_id: scoringData.wasStolen ? 
-          round.round_teams.find(t => t.role === 'stealer').round_team_id :
-          round.round_teams.find(t => t.role === 'player').round_team_id
+        score_type: scoringData.wasStolen ? 'steal' : 'standard'
       });
 
       // Refresh songs list

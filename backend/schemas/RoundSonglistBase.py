@@ -1,3 +1,4 @@
+# Update: backend/schemas/RoundSonglistBase.py
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
@@ -17,6 +18,7 @@ class RoundSonglistCreate(RoundSonglistBase):
     pass
 
 class RoundSonglistUpdate(BaseModel):
+    round_team_id: Optional[int] = None
     correct_artist_guess: Optional[bool] = None
     correct_song_title_guess: Optional[bool] = None
     bonus_correct_movie_guess: Optional[bool] = None
