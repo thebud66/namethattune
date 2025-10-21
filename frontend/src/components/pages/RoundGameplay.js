@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Music, Play, SkipForward, CheckCircle, Award } from 'lucide-react';
+import { Music, Play, SkipForward, CheckCircle, Award, Trophy } from 'lucide-react';
 import SongScoring from '../SongScoring';
 
 const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
@@ -14,6 +14,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
   const [showScoring, setShowScoring] = useState(false);
   const [roles, setRoles] = useState({ dj: null, players: [], stealer: null });
   const [spotifyPlaylistId, setSpotifyPlaylistId] = useState(null);
+  const [spotifyError, setSpotifyError] = useState(false);
 
   const SONGS_PER_ROUND = 10;
 
@@ -45,7 +46,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
 
   const fetchGameDetails = async () => {
     try {
-      const response = await axios.get(`http://localhost:8000/api/games/${gameId}`);
+      const response = await axios.get(`http://localhost:8000/api/games/${gameId}/with-participants`);
       setGame(response.data);
       console.log('Game details:', response.data);
     } catch (error) {
@@ -84,6 +85,49 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
     }
   };
 
+  const calculateRoundScores = () => {
+    const scores = {};
+    
+    // Initialize scores for all participants with roles
+    const allParticipants = [
+      ...(roles.dj ? [{ participant: roles.dj, role: 'dj' }] : []),
+      ...(roles.players.map(p => ({ participant: p, role: 'player' }))),
+      ...(roles.stealer ? [{ participant: roles.stealer, role: 'stealer' }] : [])
+    ];
+
+    allParticipants.forEach(({ participant, role }) => {
+      scores[participant.participant_id] = {
+        player: participant.player,
+        score: 0,
+        role: role,
+        seatNumber: participant.seat_number
+      };
+    });
+
+    // Calculate scores from songs
+    round?.round_teams?.forEach(team => {
+      let teamScore = 0;
+      
+      // Sum up team's score from all songs
+      songs.forEach(song => {
+        if (song.round_team_id === team.round_team_id) {
+          if (song.correct_artist_guess) teamScore += 1;
+          if (song.correct_song_title_guess) teamScore += 1;
+          if (song.bonus_correct_movie_guess) teamScore += 1;
+        }
+      });
+
+      // Assign team score to all team members
+      team.round_team_players?.forEach(teamPlayer => {
+        if (scores[teamPlayer.participant_id]) {
+          scores[teamPlayer.participant_id].score = teamScore;
+        }
+      });
+    });
+
+    return Object.values(scores).sort((a, b) => a.seatNumber - b.seatNumber);
+  };
+
   const pausePlayback = async () => {
     try {
       await axios.put('http://localhost:8000/api/spotify/me/player/pause');
@@ -91,7 +135,6 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
     } catch (error) {
       if (error.response?.status === 404) {
         console.warn('No active Spotify device found');
-        // Don't treat this as a critical error
         return;
       }
       console.error('Error pausing playback:', error);
@@ -99,100 +142,101 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
   };
 
   const playNextSongFromPlaylist = async () => {
+    setSpotifyError(false); // Clear any previous error
+    setError(''); // Clear error message
+    
     try {
       if (!spotifyPlaylistId) {
         setError('Spotify playlist not configured');
         return;
       }
 
-      // Check if something is currently playing and pause it
       console.log('Checking current playback state...');
-      const stateResponse = await axios.get('http://localhost:8000/api/spotify/me/player');
-      if (stateResponse.data && stateResponse.data.is_playing) {
+      
+      let stateResponse;
+      try {
+        stateResponse = await axios.get('http://localhost:8000/api/spotify/me/player');
+      } catch (stateError) {
+        console.warn('Error checking playback state:', stateError);
+        // Continue anyway, don't fail here
+      }
+      
+      if (stateResponse?.data && stateResponse.data.is_playing) {
         await pausePlayback();
-        // Wait a bit for pause to complete
         await new Promise(resolve => setTimeout(resolve, 500));
       }
 
-      // Check current playback state
       let hasActiveDevice = false;
       try {
-        const stateResponse = await axios.get('http://localhost:8000/api/spotify/me/player');
-        hasActiveDevice = !!stateResponse.data;
-        if (stateResponse.data?.is_playing) {
-          await pausePlayback();
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      } catch (error) {
-        if (error.response?.status === 404 || error.response?.status === 500) {
-          // No active device yet, that's okay - starting playback will activate one
-          console.log('No active device found, will activate when playing');
-        }
+        const deviceResponse = await axios.get('http://localhost:8000/api/spotify/me/player');
+        hasActiveDevice = !!deviceResponse.data?.device?.id;
+      } catch (err) {
+        console.warn('Could not check device state:', err);
       }
 
-      // Enable shuffle mode
-      try {
-        await axios.put('http://localhost:8000/api/spotify/me/player/shuffle?state=true');
-        console.log('Shuffle enabled');
-      } catch (error) {
-        console.warn('Could not enable shuffle:', error);
-      }
-
-      // Start playback from playlist (shuffle will randomize the tracks)
-      await axios.put('http://localhost:8000/api/spotify/me/player/play', {
-        context_uri: `spotify:playlist:${spotifyPlaylistId}`
+      console.log('Playing random track from playlist...');
+      const playResponse = await axios.put('http://localhost:8000/api/spotify/me/player/play', {
+        context_uri: `spotify:playlist:${spotifyPlaylistId}`,
+        offset: { position: Math.floor(Math.random() * 100) }
       });
+      console.log('Play response received');
 
-      // Wait a moment for playback to start
       await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('Waited 1 second, now getting currently playing track...');
 
-      // Get currently playing track info
-      const trackResponse = await axios.get('http://localhost:8000/api/spotify/me/player/currently-playing');
+      const nowPlayingResponse = await axios.get('http://localhost:8000/api/spotify/me/player/currently-playing');
+      console.log('Now playing response:', nowPlayingResponse.data);
+      
+      // The track data is directly in the response, not in an 'item' property
+      const track = nowPlayingResponse.data.item || nowPlayingResponse.data;
+      console.log('Track extracted:', track);
+      
+      setCurrentTrack(track);
 
-      if (trackResponse.data) {
-        const track = trackResponse.data;
-        setCurrentTrack(track);
-
-        // Save track to database
+      if (track) {
+        console.log('Track exists, calling saveTrackToRound');
         await saveTrackToRound(track);
+      } else {
+        console.error('No track found in response');
+        setError('Failed to get track information from Spotify');
       }
-    } catch (error) {
-      console.error('Error playing next song:', error);
-      setError('Failed to play next song. Make sure Spotify is active.');
+    } catch (err) {
+      console.error('Error playing track:', err);
+      console.log('Setting spotifyError to true');
+      console.log('Setting error message');
+      setSpotifyError(true);
+      setError('Failed to play track from Spotify. Make sure Spotify is active.');
+      console.log('State should be updated now');
     }
   };
 
   const saveTrackToRound = async (track) => {
     try {
       console.log('Saving track:', track);
-      console.log('Track artists:', track.artists);  // ADD THIS LINE
+      console.log('Track artists:', track.artists);
 
       if (!track.artists || track.artists.length === 0) {
         throw new Error('Track has no artists');
       }
 
-      // Ensure artist exists
       const artistResponse = await axios.post('http://localhost:8000/api/artists/', {
         spotify_id: track.artists[0].id,
         name: track.artists[0].name
       });
       const artistId = artistResponse.data.artist_id;
 
-      // Ensure song exists
       const songResponse = await axios.post('http://localhost:8000/api/songs/', {
         spotify_id: track.id,
         title: track.name
       });
       const songId = songResponse.data.song_id;
 
-      // Ensure track_info exists
       const trackInfoResponse = await axios.post('http://localhost:8000/api/track-infos/', {
         song_id: songId,
         artist_id: artistId
       });
       const trackInfoId = trackInfoResponse.data.track_info_id;
 
-      // Create round songlist entry
       const playerTeam = round.round_teams.find(t => t.role === 'player');
       await axios.post('http://localhost:8000/api/round-songlists/', {
         round_id: roundId,
@@ -205,15 +249,17 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
         score_type: 'standard'
       });
 
-      // Refresh round details to get new song
       const newSongsLength = await fetchRoundDetails();
-
-      // Set index to the last song (the one we just added) for scoring
       setCurrentSongIndex(newSongsLength - 1);
-
-      // Show scoring modal
+      
+      console.log('About to show scoring modal');
+      console.log('Current song index:', newSongsLength - 1);
+      console.log('Songs array:', songs);
+      console.log('Setting showScoring to true');
+      
       setShowScoring(true);
-      console.log('Opening scoring modal for song at index:', newSongsLength - 1);
+      
+      console.log('showScoring should now be true');
     } catch (error) {
       console.error('Error saving track:', error);
       setError('Failed to save track. Please try again.');
@@ -225,15 +271,12 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
       const currentSong = songs[currentSongIndex];
       console.log('Scoring song:', currentSong, 'at index:', currentSongIndex);
 
-      // Pause playback when scoring is complete
       await pausePlayback();
 
-      // Determine which team gets the points
       const targetTeamId = scoringData.wasStolen ?
         round.round_teams.find(t => t.role === 'stealer')?.round_team_id :
         round.round_teams.find(t => t.role === 'player')?.round_team_id;
 
-      // Update the round songlist with scoring
       await axios.put(`http://localhost:8000/api/round-songlists/${currentSong.round_songlist_id}`, {
         round_team_id: targetTeamId,
         correct_artist_guess: scoringData.correctArtist,
@@ -244,10 +287,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
 
       setShowScoring(false);
 
-      // Refresh songs list to get updated data
       const newSongsLength = await fetchRoundDetails();
-
-      // Move index to "ready for next song" position
       setCurrentSongIndex(newSongsLength);
       console.log('Set currentSongIndex to:', newSongsLength, '(ready for next song)');
     } catch (error) {
@@ -262,16 +302,11 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
     }
 
     try {
-      // Pause playback when ending round
       await pausePlayback();
-
-      // Mark the round as complete
       await axios.put(`http://localhost:8000/api/rounds/${roundId}`, {
         is_complete: true
       });
       console.log('Round marked as complete');
-
-      // Navigate back to current game
       onRoundComplete();
     } catch (error) {
       console.error('Error ending round:', error);
@@ -296,16 +331,45 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
     );
   }
 
-  if (error) {
+  if (error && !loading && !showScoring) {
     return (
       <div className="container">
-        <div className="error">{error}</div>
+        <div style={{
+          padding: '20px',
+          backgroundColor: '#fef2f2',
+          border: '2px solid #ef4444',
+          borderRadius: '12px',
+          textAlign: 'center',
+          maxWidth: '500px',
+          margin: '0 auto'
+        }}>
+          <p style={{ color: '#b91c1c', fontWeight: '600', marginBottom: '16px', fontSize: '15px' }}>
+            {error}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setError('');
+              setSpotifyError(false);
+              playNextSongFromPlaylist();
+            }}
+            className="btn-primary"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
 
   const isRoundComplete = songs.length >= SONGS_PER_ROUND;
   const canPlayNext = currentSongIndex === songs.length && !isRoundComplete;
+  const roundScores = calculateRoundScores();
+  const hasSpotifyError = error && error.includes('Spotify');
+
+  console.log('Error state:', error);
+  console.log('SpotifyError state:', spotifyError);
+  console.log('hasSpotifyError computed:', hasSpotifyError);
 
   return (
     <div className="container">
@@ -313,14 +377,9 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
       <div style={{ marginBottom: '30px' }}>
         <h1>Round {round?.round_number}</h1>
         <p className="subtitle">Song {songs.length} of {SONGS_PER_ROUND}</p>
-        {spotifyPlaylistId && (
-          <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '8px' }}>
-            🎵 Playing from playlist (ID: {spotifyPlaylistId})
-          </p>
-        )}
       </div>
 
-      {/* Roles Display */}
+      {/* Roles Display with Scores */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -336,13 +395,26 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
             borderRadius: '12px'
           }}>
             <div style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: getRoleColor('dj'),
-              textTransform: 'uppercase',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               marginBottom: '8px'
             }}>
-              DJ
+              <div style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                color: getRoleColor('dj'),
+                textTransform: 'uppercase'
+              }}>
+                DJ
+              </div>
+              <div style={{
+                fontSize: '24px',
+                fontWeight: 700,
+                color: getRoleColor('dj')
+              }}>
+                {roundScores.find(s => s.player.player_id === roles.dj.player.player_id)?.score || 0}
+              </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <img
@@ -366,30 +438,39 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
             borderRadius: '12px'
           }}>
             <div style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: getRoleColor('player'),
-              textTransform: 'uppercase',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               marginBottom: '8px'
             }}>
-              PLAYERS ({roles.players.length})
+              <div style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                color: getRoleColor('player'),
+                textTransform: 'uppercase'
+              }}>
+                {roles.players.length > 1 ? 'Players' : 'Player'}
+              </div>
+              <div style={{
+                fontSize: '24px',
+                fontWeight: 700,
+                color: getRoleColor('player')
+              }}>
+                {roundScores.find(s => s.role === 'player')?.score || 0}
+              </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {roles.players.map(participant => (
-                <div key={participant.participant_id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <img
-                    src={participant.player.image_url ?
-                      `http://localhost:8000${participant.player.image_url}` :
-                      '/images/usr_placeholder.png'}
-                    alt={participant.player.name}
-                    style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
-                  />
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937' }}>
-                    {participant.player.name}
-                  </div>
-                </div>
-              ))}
-            </div>
+            {roles.players.map((player) => (
+              <div key={player.participant_id} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <img
+                  src={player.player.image_url ?
+                    `http://localhost:8000${player.player.image_url}` :
+                    '/images/usr_placeholder.png'}
+                  alt={player.player.name}
+                  style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+                />
+                <div style={{ fontWeight: 600, color: '#1f2937' }}>{player.player.name}</div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -397,18 +478,31 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
         {roles.stealer && (
           <div style={{
             padding: '16px',
-            backgroundColor: '#f0fdf4',
+            backgroundColor: '#ecfdf5',
             border: `2px solid ${getRoleColor('stealer')}`,
             borderRadius: '12px'
           }}>
             <div style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: getRoleColor('stealer'),
-              textTransform: 'uppercase',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               marginBottom: '8px'
             }}>
-              STEALER
+              <div style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                color: getRoleColor('stealer'),
+                textTransform: 'uppercase'
+              }}>
+                Stealer
+              </div>
+              <div style={{
+                fontSize: '24px',
+                fontWeight: 700,
+                color: getRoleColor('stealer')
+              }}>
+                {roundScores.find(s => s.player.player_id === roles.stealer.player.player_id)?.score || 0}
+              </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <img
@@ -495,9 +589,40 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
         </div>
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div style={{
+          padding: '20px',
+          backgroundColor: '#fef2f2',
+          border: '2px solid #ef4444',
+          borderRadius: '12px',
+          textAlign: 'center',
+          maxWidth: '500px',
+          margin: '0 auto 20px auto'
+        }}>
+          <p style={{ color: '#b91c1c', fontWeight: '600', marginBottom: '16px', fontSize: '15px' }}>
+            {error}
+          </p>
+          <p>STEP 1</p>
+        </div>
+      )}
+      
+      {error && (
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <p>STEP 2 - separate div</p>
+          <button
+            type="button"
+            onClick={playNextSongFromPlaylist}
+            className="btn-primary"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+      
       {/* Action Buttons */}
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-        {canPlayNext && spotifyPlaylistId && (
+        {canPlayNext && spotifyPlaylistId && !spotifyError && (
           <button
             className="btn-primary"
             onClick={playNextSongFromPlaylist}
@@ -532,10 +657,15 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
       </div>
       
       {/* Modals */}
+      {console.log('Render check - showScoring:', showScoring)}
+      {console.log('Render check - songs.length:', songs.length)}
+      {console.log('Render check - currentSongIndex:', currentSongIndex)}
+      {console.log('Render check - should show modal:', showScoring && songs.length > currentSongIndex && songs[currentSongIndex])}
+      
       {showScoring && songs.length > currentSongIndex && songs[currentSongIndex] && (
         <SongScoring
           song={songs[currentSongIndex]}
-          currentTrack={currentTrack}  // ADD THIS LINE
+          currentTrack={currentTrack}
           hasPlayers={roles.players.length > 0}
           hasStealer={roles.stealer !== null}
           onClose={() => setShowScoring(false)}
