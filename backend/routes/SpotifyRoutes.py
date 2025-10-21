@@ -205,17 +205,17 @@ async def add_tracks_to_playlist(
 
 
 # Player routes
-@router.get("/me/player/currently-playing", response_model=Optional[Track])
+@router.get("/me/player/currently-playing")
 async def get_currently_playing(service: SpotifyService = Depends(get_spotify_service)):
-    """Get the currently playing track"""
+    """Get the currently playing track - returns raw Spotify data"""
     try:
         data = service.get_currently_playing()
         if data and data.get('item'):
-            return Track.from_dict(data['item'])
+            # Return the raw item data from Spotify, not the Track model
+            return data['item']
         return None
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/me/player/recently-played", response_model=List[Track])
 async def get_recently_played(
@@ -301,5 +301,17 @@ async def get_playlist_tracks_paginated(
     try:
         data = service.get_playlist_tracks_paginated(playlist_id, offset, limit)
         return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.put("/me/player/shuffle")
+async def set_shuffle(
+    state: bool = Query(..., description="true to turn on shuffle, false to turn off"),
+    service: SpotifyService = Depends(get_spotify_service)
+):
+    """Toggle shuffle on or off for user's playback"""
+    try:
+        service.set_shuffle(state)
+        return {"message": f"Shuffle {'enabled' if state else 'disabled'}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

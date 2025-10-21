@@ -1,8 +1,7 @@
-// Save as: frontend/src/components/SongScoring.js
 import React, { useState } from 'react';
 import { X, Award, Users, Target } from 'lucide-react';
 
-const SongScoring = ({ song, hasPlayers, hasStealer, onClose, onScoreSubmit }) => {
+const SongScoring = ({ song, currentTrack, hasPlayers, hasStealer, onClose, onScoreSubmit }) => {
   const [correctArtist, setCorrectArtist] = useState(false);
   const [correctSong, setCorrectSong] = useState(false);
   const [correctMovie, setCorrectMovie] = useState(false);
@@ -33,18 +32,45 @@ const SongScoring = ({ song, hasPlayers, hasStealer, onClose, onScoreSubmit }) =
           </button>
         </div>
 
-        {/* Song Info */}
+        {/* Song Info with Album Art */}
         <div style={{
-          padding: '16px',
+          padding: '20px',
           backgroundColor: '#f9fafb',
           borderRadius: '12px',
-          marginBottom: '24px'
+          marginBottom: '24px',
+          display: 'flex',
+          gap: '16px',
+          alignItems: 'center'
         }}>
-          <div style={{ fontWeight: 600, fontSize: '18px', color: '#1f2937', marginBottom: '4px' }}>
-            {song.song?.title || 'Song Title'}
-          </div>
-          <div style={{ fontSize: '15px', color: '#6b7280' }}>
-            {song.track_info?.artist?.name || 'Artist'}
+          {/* Album Art */}
+          {currentTrack?.album?.images?.[0]?.url && (
+            <img 
+              src={currentTrack.album.images[0].url}
+              alt={currentTrack.album.name}
+              style={{ 
+                width: '80px', 
+                height: '80px', 
+                borderRadius: '8px',
+                objectFit: 'cover',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                flexShrink: 0
+              }}
+            />
+          )}
+          
+          {/* Track Info */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: '20px', color: '#1f2937', marginBottom: '6px' }}>
+              {currentTrack?.name || song.song?.title || 'Song Title'}
+            </div>
+            <div style={{ fontSize: '16px', color: '#6b7280', marginBottom: '4px' }}>
+              {currentTrack?.artists?.map(a => a.name).join(', ') || song.track_info?.artist?.name || 'Artist'}
+            </div>
+            {currentTrack?.album?.name && (
+              <div style={{ fontSize: '14px', color: '#9ca3af' }}>
+                {currentTrack.album.name}
+              </div>
+            )}
           </div>
         </div>
 
@@ -54,6 +80,7 @@ const SongScoring = ({ song, hasPlayers, hasStealer, onClose, onScoreSubmit }) =
             What did {wasStolen ? 'the stealer' : 'the player(s)'} get correct?
           </h3>
 
+          {/* Rest of the scoring options remain the same */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {/* Artist */}
             <label

@@ -28,10 +28,10 @@ class SpotifyService:
         response.raise_for_status()
         return response.json()
     
-    def _put(self, endpoint: str, data: Optional[Dict] = None) -> Optional[Dict[str, Any]]:
+    def _put(self, endpoint: str, data: Optional[Dict] = None, params: Optional[Dict] = None) -> Optional[Dict[str, Any]]:
         """Make PUT request to Spotify API"""
         url = f"{self.BASE_URL}/{endpoint}"
-        response = requests.put(url, headers=self.headers, json=data)
+        response = requests.put(url, headers=self.headers, json=data, params=params)
         response.raise_for_status()
         return response.json() if response.text else None
     
