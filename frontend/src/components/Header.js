@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, Settings, Music, Users } from 'lucide-react';
+import { Menu, X, Settings, Music, Users, Trophy } from 'lucide-react';
 
 const Header = ({ currentPage, setCurrentPage }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -8,6 +8,7 @@ const Header = ({ currentPage, setCurrentPage }) => {
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Music },
+    { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
     { id: 'players', label: 'Players', icon: Users },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];

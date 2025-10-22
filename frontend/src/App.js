@@ -1,8 +1,8 @@
-// Update: frontend/src/App.js
 import React, { useState } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './components/pages/Home';
+import Leaderboard from './components/pages/Leaderboard';
 import Players from './components/pages/Players';
 import Contact from './components/pages/Contact';
 import Settings from './components/pages/Settings';
@@ -37,6 +37,8 @@ const App = () => {
     switch (currentPage) {
       case 'home':
         return <Home setCurrentPage={setCurrentPage} setCurrentGameId={setCurrentGameId} />;
+      case 'leaderboard':
+        return <Leaderboard setCurrentPage={setCurrentPage} setCurrentGameId={setCurrentGameId} />;
       case 'players':
         return <Players />;
       case 'contact':

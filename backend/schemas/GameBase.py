@@ -10,6 +10,8 @@ if TYPE_CHECKING:
 class GameBase(BaseModel):
     started_at: Optional[datetime] = None
     ended_at: Optional[datetime] = None
+    playlist_id: Optional[str] = None
+    current_track_index: Optional[int] = 0
 
 class GameCreate(GameBase):
     pass
@@ -17,6 +19,8 @@ class GameCreate(GameBase):
 class GameUpdate(BaseModel):
     started_at: Optional[datetime] = None
     ended_at: Optional[datetime] = None
+    playlist_id: Optional[str] = None
+    current_track_index: Optional[int] = None
 
 class Game(GameBase):
     game_id: int
