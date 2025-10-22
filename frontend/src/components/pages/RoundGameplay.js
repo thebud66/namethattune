@@ -271,7 +271,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
       const currentSong = songs[currentSongIndex];
       console.log('Scoring song:', currentSong, 'at index:', currentSongIndex);
 
-      await pausePlayback();
+      // Removed await pausePlayback(); - Keep music playing during scoring
 
       const targetTeamId = scoringData.wasStolen ?
         round.round_teams.find(t => t.role === 'stealer')?.round_team_id :

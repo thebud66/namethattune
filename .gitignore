@@ -134,6 +134,9 @@ lerna-debug.log*
 *.sql
 *.dump
 
+# ===== Uploaded Images =====
+frontend/public/images/usr/
+
 # ===== Logs =====
 logs/
 *.log

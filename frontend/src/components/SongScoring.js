@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Award, Users, Target } from 'lucide-react';
+import { Award, Users, Target } from 'lucide-react';
 
 const SongScoring = ({ song, currentTrack, hasPlayers, hasStealer, onClose, onScoreSubmit }) => {
   const [correctArtist, setCorrectArtist] = useState(false);
@@ -22,14 +22,11 @@ const SongScoring = ({ song, currentTrack, hasPlayers, hasStealer, onClose, onSc
   return (
     <div className="modal-overlay">
       <div className="modal" style={{ maxWidth: '600px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div style={{ marginBottom: '24px' }}>
           <h2 className="modal-title" style={{ margin: 0 }}>
             <Target size={24} style={{ display: 'inline', marginRight: '10px', verticalAlign: 'middle' }} />
             Score This Song
           </h2>
-          <button onClick={onClose} className="btn-icon" style={{ width: '32px', height: '32px' }}>
-            <X size={20} />
-          </button>
         </div>
 
         {/* Song Info with Album Art */}
@@ -44,12 +41,12 @@ const SongScoring = ({ song, currentTrack, hasPlayers, hasStealer, onClose, onSc
         }}>
           {/* Album Art */}
           {currentTrack?.album?.images?.[0]?.url && (
-            <img 
+            <img
               src={currentTrack.album.images[0].url}
               alt={currentTrack.album.name}
-              style={{ 
-                width: '80px', 
-                height: '80px', 
+              style={{
+                width: '80px',
+                height: '80px',
                 borderRadius: '8px',
                 objectFit: 'cover',
                 boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
@@ -57,7 +54,7 @@ const SongScoring = ({ song, currentTrack, hasPlayers, hasStealer, onClose, onSc
               }}
             />
           )}
-          
+
           {/* Track Info */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: '20px', color: '#1f2937', marginBottom: '6px' }}>
@@ -217,10 +214,7 @@ const SongScoring = ({ song, currentTrack, hasPlayers, hasStealer, onClose, onSc
         </div>
 
         {/* Action Buttons */}
-        <div className="modal-actions">
-          <button onClick={onClose} className="btn-secondary">
-            Cancel
-          </button>
+        <div className="modal-actions" style={{ justifyContent: 'center' }}>
           <button onClick={handleSubmit} className="btn-primary">
             Save Score
           </button>
