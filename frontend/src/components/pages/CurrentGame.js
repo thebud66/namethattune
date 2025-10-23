@@ -22,7 +22,19 @@ const CurrentGame = ({ gameId, onGameEnded, onRoundStarted }) => {
   const fetchGameDetails = async () => {
     try {
       const response = await axios.get(`http://localhost:8000/api/games/${gameId}/with-participants`);
-      setGame(response.data);
+      
+      // *** FIX: Always sort participants by seat_number when setting state ***
+      const gameData = {
+        ...response.data,
+        participants: response.data.participants.sort((a, b) => a.seat_number - b.seat_number)
+      };
+      
+      console.log('Game loaded with sorted participants:', gameData.participants.map(p => ({
+        name: p.player.name,
+        seat: p.seat_number
+      })));
+      
+      setGame(gameData);
     } catch (error) {
       console.error('Error fetching game:', error);
       setError('Failed to load game details');
@@ -30,7 +42,7 @@ const CurrentGame = ({ gameId, onGameEnded, onRoundStarted }) => {
       setLoading(false);
     }
   };
-
+  
   const fetchAllRounds = async () => {
     try {
       const response = await axios.get(`http://localhost:8000/api/rounds/game/${gameId}`);
