@@ -177,7 +177,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
       console.log('Playing random track from playlist...');
       const playResponse = await axios.put('http://localhost:8000/api/spotify/me/player/play', {
         context_uri: `spotify:playlist:${spotifyPlaylistId}`,
-        offset: { position: Math.floor(Math.random() * 100) }
+        // offset: { position: Math.floor(Math.random() * 100) }
       });
       console.log('Play response received');
 

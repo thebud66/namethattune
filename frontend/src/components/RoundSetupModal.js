@@ -39,8 +39,14 @@ const RoundSetupModal = ({ gameId, participants, onClose, onRoundCreated }) => {
       console.log('Round created:', roundResponse.data);
       const roundId = roundResponse.data.round_id;
       
-      // Assign roles based on round number
-      const roles = assignRolesForRound(participants, nextRoundNumber);
+      const sortedParticipants = [...participants].sort((a, b) => a.seat_number - b.seat_number);
+      console.log('Sorted participants:', sortedParticipants.map(p => ({
+        name: p.player.name,
+        seat_number: p.seat_number
+      })));
+      
+      // Assign roles based on round number with sorted participants
+      const roles = assignRolesForRound(sortedParticipants, nextRoundNumber);
       console.log('Roles assigned:', roles);
       
       // Create round teams and assign participants
