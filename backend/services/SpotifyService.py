@@ -53,7 +53,8 @@ class SpotifyService:
         return self._get(f"tracks/{track_id}")
     
     def get_tracks(self, track_ids: List[str]) -> Dict[str, Any]:
-        return self._get("tracks", params={"ids": ",".join(track_ids)})
+        ids_param = ",".join(track_ids)
+        return self._get("tracks", params={"ids": ids_param})
     
     def search_tracks(self, query: str, limit: int = 20) -> Dict[str, Any]:
         return self._get("search", params={"q": query, "type": "track", "limit": limit})
@@ -79,19 +80,15 @@ class SpotifyService:
     def get_playlist(self, playlist_id: str) -> Dict[str, Any]:
         return self._get(f"playlists/{playlist_id}")
     
-    def get_playlist_tracks(self, playlist_id: str, limit: int = 100) -> Dict[str, Any]:
-        return self._get(f"playlists/{playlist_id}/tracks", params={"limit": limit})
-    
     def get_user_playlists(self, limit: int = 50) -> Dict[str, Any]:
         return self._get("me/playlists", params={"limit": limit})
     
-    def create_playlist(self, user_id: str, name: str, public: bool = True, 
-                       description: str = "") -> Dict[str, Any]:
+    def create_playlist(self, user_id: str, name: str, public: bool = True, description: str = "") -> Dict[str, Any]:
         data = {"name": name, "public": public, "description": description}
-        return self._post(f"users/{user_id}/playlists", data=data)
+        return self._post(f"users/{user_id}/playlists", data)
     
-    def add_tracks_to_playlist(self, playlist_id: str, track_uris: List[str]) -> Dict[str, Any]:
-        return self._post(f"playlists/{playlist_id}/tracks", data={"uris": track_uris})
+    def add_tracks_to_playlist(self, playlist_id: str, track_uris: List[str]) -> None:
+        self._post(f"playlists/{playlist_id}/tracks", data={"uris": track_uris})
     
     # Player endpoints
     def get_currently_playing(self) -> Dict[str, Any]:
@@ -105,7 +102,8 @@ class SpotifyService:
         self._put("me/player/pause")
 
     def start_playback(self, context_uri: str = None, uris: List[str] = None, 
-                    position_ms: int = 0, offset: Dict[str, Any] = None) -> None:
+                    position_ms: int = 0, offset: Dict[str, Any] = None,
+                    device_id: str = None) -> None:
         """Start or resume playback
         
         Args:
@@ -113,6 +111,7 @@ class SpotifyService:
             uris: List of Spotify track URIs to play
             position_ms: Position in milliseconds to start playback
             offset: Indicates from where in context playback should start
+            device_id: The device to play on (optional)
         """
         data = {}
         if context_uri:
@@ -124,7 +123,11 @@ class SpotifyService:
         if offset:
             data["offset"] = offset
         
-        self._put("me/player/play", data=data)
+        params = {}
+        if device_id:
+            params["device_id"] = device_id
+        
+        self._put("me/player/play", data=data, params=params)
 
     def skip_to_next(self) -> None:
         """Skip to next track in user's queue"""
@@ -138,40 +141,21 @@ class SpotifyService:
         """Get information about user's current playback"""
         return self._get("me/player")
 
-    def get_playlist_tracks_paginated(self, playlist_id: str, offset: int = 0, 
-                                    limit: int = 100) -> Dict[str, Any]:
-        """Get playlist tracks with pagination support"""
-        return self._get(f"playlists/{playlist_id}/tracks", 
-                        params={"limit": limit, "offset": offset})
+    def get_available_devices(self) -> Dict[str, Any]:
+        """Get information about user's available devices"""
+        return self._get("me/player/devices")
 
-    # backend/services/SpotifyService.py
-    # Add these methods to the existing SpotifyService class
-
-    def pause_playback(self) -> None:
-        """Pause playback on the user's active device"""
-        self._put("me/player/pause")
-
-    def start_playback(self, context_uri: str = None, uris: List[str] = None, 
-                    position_ms: int = 0, offset: Dict[str, Any] = None) -> None:
-        """Start or resume playback
+    def transfer_playback(self, device_ids: List[str], play: bool = False) -> None:
+        """Transfer playback to a new device
         
         Args:
-            context_uri: Spotify URI of context (album, artist, playlist)
-            uris: List of Spotify track URIs to play
-            position_ms: Position in milliseconds to start playback
-            offset: Indicates from where in context playback should start
+            device_ids: List containing the ID of the device to transfer to
+            play: Whether to start playing after transfer
         """
-        data = {}
-        if context_uri:
-            data["context_uri"] = context_uri
-        if uris:
-            data["uris"] = uris
-        if position_ms:
-            data["position_ms"] = position_ms
-        if offset:
-            data["offset"] = offset
-        
-        self._put("me/player/play", data=data)
+        self._put("me/player", data={
+            "device_ids": device_ids,
+            "play": play
+        })
 
     def set_shuffle(self, state: bool) -> None:
         """Toggle shuffle on or off for user's playback
@@ -180,18 +164,6 @@ class SpotifyService:
             state: True to turn on shuffle, False to turn off
         """
         self._put("me/player/shuffle", params={"state": str(state).lower()})
-
-    def skip_to_next(self) -> None:
-        """Skip to next track in user's queue"""
-        self._post("me/player/next")
-
-    def skip_to_previous(self) -> None:
-        """Skip to previous track in user's queue"""
-        self._post("me/player/previous")
-
-    def get_playback_state(self) -> Dict[str, Any]:
-        """Get information about user's current playback"""
-        return self._get("me/player")
 
     def get_playlist_tracks_paginated(self, playlist_id: str, offset: int = 0, 
                                     limit: int = 100) -> Dict[str, Any]:
