@@ -13,6 +13,7 @@ class Participant(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Relationships
-    game = relationship("Game", back_populates="participants")
+    # Explicitly specify foreign_keys to avoid ambiguity with Game.all_time_dj_participant_id
+    game = relationship("Game", back_populates="participants", foreign_keys=[game_id])
     player = relationship("Player", back_populates="participations")
     round_team_players = relationship("RoundTeamPlayer", back_populates="participant", cascade="all, delete-orphan")

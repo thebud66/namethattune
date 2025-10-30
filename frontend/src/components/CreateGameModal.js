@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, GripVertical, Users, AlertCircle } from 'lucide-react';
+import { X, GripVertical, Users, AlertCircle, Music } from 'lucide-react';
 
 const CreateGameModal = ({ onClose, onGameCreated }) => {
   const [players, setPlayers] = useState([]);
   const [selectedPlayers, setSelectedPlayers] = useState([]);
+  const [allTimeDjPlayerId, setAllTimeDjPlayerId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [draggedIndex, setDraggedIndex] = useState(null);
@@ -29,12 +30,24 @@ const CreateGameModal = ({ onClose, onGameCreated }) => {
     setSelectedPlayers(prev => {
       const exists = prev.find(p => p.player_id === player.player_id);
       if (exists) {
+        // If removing a player who is the all-time DJ, clear that selection
+        if (allTimeDjPlayerId === player.player_id) {
+          setAllTimeDjPlayerId(null);
+        }
         return prev.filter(p => p.player_id !== player.player_id);
       } else {
         return [...prev, player];
       }
     });
     setError('');
+  };
+
+  const handleAllTimeDjToggle = (playerId) => {
+    if (allTimeDjPlayerId === playerId) {
+      setAllTimeDjPlayerId(null);
+    } else {
+      setAllTimeDjPlayerId(playerId);
+    }
   };
 
   const handleDragStart = (index) => {
@@ -81,7 +94,30 @@ const CreateGameModal = ({ onClose, onGameCreated }) => {
         })
       );
 
-      await Promise.all(participantPromises);
+      const participantResponses = await Promise.all(participantPromises);
+
+      // If an all-time DJ was selected, update the game with the participant ID
+      if (allTimeDjPlayerId) {
+        const allTimeDjParticipant = participantResponses.find(
+          resp => selectedPlayers.find(p => p.player_id === allTimeDjPlayerId)?.player_id === 
+                  selectedPlayers[participantResponses.indexOf(resp)]?.player_id
+        );
+        
+        // Find the correct participant ID
+        let allTimeDjParticipantId = null;
+        for (let i = 0; i < selectedPlayers.length; i++) {
+          if (selectedPlayers[i].player_id === allTimeDjPlayerId) {
+            allTimeDjParticipantId = participantResponses[i].data.participant_id;
+            break;
+          }
+        }
+
+        if (allTimeDjParticipantId) {
+          await axios.put(`http://localhost:8000/api/games/${gameId}`, {
+            all_time_dj_participant_id: allTimeDjParticipantId
+          });
+        }
+      }
 
       // Call the callback with the game ID
       onGameCreated(gameId);
@@ -91,15 +127,11 @@ const CreateGameModal = ({ onClose, onGameCreated }) => {
     }
   };
 
-  const isSelected = (playerId) => {
-    return selectedPlayers.some(p => p.player_id === playerId);
-  };
-
   if (loading) {
     return (
       <div className="modal-overlay">
         <div className="modal">
-          <div className="loading">Loading...</div>
+          <div className="loading">Loading players...</div>
         </div>
       </div>
     );
@@ -107,9 +139,12 @@ const CreateGameModal = ({ onClose, onGameCreated }) => {
 
   return (
     <div className="modal-overlay">
-      <div className="modal" style={{ maxWidth: '900px', maxHeight: '85vh' }}>
+      <div className="modal" style={{ maxWidth: '700px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 className="modal-title" style={{ margin: 0 }}>Create New Game</h2>
+          <h2 className="modal-title" style={{ margin: 0 }}>
+            <Users size={24} style={{ display: 'inline', marginRight: '10px', verticalAlign: 'middle' }} />
+            Create New Game
+          </h2>
           <button onClick={onClose} className="btn-icon" style={{ width: '32px', height: '32px' }}>
             <X size={20} />
           </button>
@@ -122,40 +157,103 @@ const CreateGameModal = ({ onClose, onGameCreated }) => {
           </div>
         )}
 
-        {players.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon"><Users size={48} /></div>
-            <div className="empty-state-text">No players available. Please add players first.</div>
+        <div style={{ marginBottom: '24px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#1f2937' }}>
+            Select Players
+          </h3>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+            gap: '12px',
+            maxHeight: '250px',
+            overflowY: 'auto',
+            padding: '4px'
+          }}>
+            {players.map(player => {
+              const isSelected = selectedPlayers.find(p => p.player_id === player.player_id);
+              return (
+                <div
+                  key={player.player_id}
+                  onClick={() => togglePlayer(player)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px',
+                    border: `2px solid ${isSelected ? '#667eea' : '#e5e7eb'}`,
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    backgroundColor: isSelected ? '#f0f4ff' : '#ffffff',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <img
+                    src={player.image_url ? `http://localhost:8000${player.image_url}` : '/images/usr_placeholder.png'}
+                    alt={player.name}
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ 
+                      fontWeight: 600, 
+                      color: '#1f2937',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {player.name}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ) : (
-          <div style={{ display: 'flex', gap: '20px', minHeight: '400px' }}>
-            {/* Available Players Section */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <h3 style={{ fontSize: '1em', fontWeight: 600, color: '#374151', marginBottom: '12px' }}>
-                Available Players ({players.length})
+        </div>
+
+        {selectedPlayers.length > 0 && (
+          <>
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#1f2937' }}>
+                Seat Order (Drag to Reorder)
               </h3>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', 
-                gap: '8px',
-                flex: 1,
-                alignContent: 'start'
-              }}>
-                {players.map(player => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {selectedPlayers.map((player, index) => (
                   <div
                     key={player.player_id}
-                    onClick={() => togglePlayer(player)}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
                     style={{
-                      padding: '10px',
-                      border: isSelected(player.player_id) ? '2px solid #667eea' : '2px solid #e5e7eb',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px',
+                      backgroundColor: '#f9fafb',
+                      border: '2px solid #e5e7eb',
                       borderRadius: '10px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      backgroundColor: isSelected(player.player_id) ? '#f0f4ff' : 'white',
-                      textAlign: 'center',
-                      height: 'fit-content'
+                      cursor: 'move'
                     }}
                   >
+                    <GripVertical size={20} style={{ color: '#9ca3af' }} />
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      backgroundColor: '#667eea',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: '14px'
+                    }}>
+                      {index + 1}
+                    </div>
                     <img
                       src={player.image_url ? `http://localhost:8000${player.image_url}` : '/images/usr_placeholder.png'}
                       alt={player.name}
@@ -163,117 +261,90 @@ const CreateGameModal = ({ onClose, onGameCreated }) => {
                         width: '40px',
                         height: '40px',
                         borderRadius: '50%',
-                        objectFit: 'cover',
-                        margin: '0 auto 6px'
+                        objectFit: 'cover'
                       }}
                     />
-                    <div style={{ fontSize: '12px', fontWeight: 500, color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {player.name}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, color: '#1f2937' }}>{player.name}</div>
+                      <div style={{ fontSize: '13px', color: '#6b7280' }}>Seat {index + 1}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Divider */}
-            <div style={{ width: '1px', backgroundColor: '#e5e7eb' }}></div>
-
-            {/* Selected Players Section */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <h3 style={{ fontSize: '1em', fontWeight: 600, color: '#374151', marginBottom: '12px' }}>
-                Selected Players ({selectedPlayers.length})
-                {selectedPlayers.length > 0 && (
-                  <span style={{ fontSize: '0.8em', fontWeight: 400, color: '#6b7280', marginLeft: '8px' }}>
-                    (Drag to reorder)
-                  </span>
-                )}
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: '#1f2937' }}>
+                <Music size={18} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'middle' }} />
+                All-Time DJ (Optional)
               </h3>
-              {selectedPlayers.length === 0 ? (
-                <div style={{ 
-                  flex: 1, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  color: '#9ca3af',
-                  fontSize: '14px',
-                  fontStyle: 'italic',
-                  border: '2px dashed #e5e7eb',
-                  borderRadius: '10px',
-                  padding: '20px'
-                }}>
-                  Click players to select them
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, alignContent: 'start' }}>
-                  {selectedPlayers.map((player, index) => (
-                    <div
-                      key={player.player_id}
-                      draggable
-                      onDragStart={() => handleDragStart(index)}
-                      onDragOver={(e) => handleDragOver(e, index)}
-                      onDragEnd={handleDragEnd}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        padding: '8px 12px',
-                        backgroundColor: 'white',
-                        border: '2px solid #e5e7eb',
-                        borderRadius: '8px',
-                        cursor: 'grab',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <GripVertical size={16} style={{ color: '#9ca3af', flexShrink: 0 }} />
-                      <div style={{ 
-                        width: '24px', 
-                        height: '24px', 
-                        borderRadius: '50%', 
-                        backgroundColor: '#667eea',
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 600,
-                        fontSize: '12px',
-                        flexShrink: 0
-                      }}>
-                        {index + 1}
-                      </div>
-                      <img
-                        src={player.image_url ? `http://localhost:8000${player.image_url}` : '/images/usr_placeholder.png'}
-                        alt={player.name}
-                        style={{
-                          width: '36px',
-                          height: '36px',
+              <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>
+                Select one player to be the DJ for every round. Other players will rotate through remaining roles.
+                Leave unselected for normal role rotation.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {selectedPlayers.map((player) => (
+                  <div
+                    key={player.player_id}
+                    onClick={() => handleAllTimeDjToggle(player.player_id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px',
+                      backgroundColor: allTimeDjPlayerId === player.player_id ? '#fffbeb' : '#f9fafb',
+                      border: `2px solid ${allTimeDjPlayerId === player.player_id ? '#f59e0b' : '#e5e7eb'}`,
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <div style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      border: `2px solid ${allTimeDjPlayerId === player.player_id ? '#f59e0b' : '#9ca3af'}`,
+                      backgroundColor: allTimeDjPlayerId === player.player_id ? '#f59e0b' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      {allTimeDjPlayerId === player.player_id && (
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
                           borderRadius: '50%',
-                          objectFit: 'cover',
-                          flexShrink: 0
-                        }}
-                      />
-                      <div style={{ flex: 1, fontSize: '14px', fontWeight: 500, color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {player.name}
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          togglePlayer(player);
-                        }}
-                        className="btn-icon delete"
-                        style={{ width: '28px', height: '28px', flexShrink: 0 }}
-                      >
-                        <X size={16} />
-                      </button>
+                          backgroundColor: 'white'
+                        }} />
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
+                    <img
+                      src={player.image_url ? `http://localhost:8000${player.image_url}` : '/images/usr_placeholder.png'}
+                      alt={player.name}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        objectFit: 'cover'
+                      }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 600, color: '#1f2937' }}>{player.name}</div>
+                      {allTimeDjPlayerId === player.player_id && (
+                        <div style={{ fontSize: '12px', color: '#f59e0b', fontWeight: 600 }}>
+                          ALL-TIME DJ
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          </>
         )}
 
-        {/* Action Buttons */}
-        <div className="modal-actions" style={{ marginTop: '24px' }}>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
           <button onClick={onClose} className="btn-secondary">
             Cancel
           </button>
@@ -281,10 +352,6 @@ const CreateGameModal = ({ onClose, onGameCreated }) => {
             onClick={handleStartGame} 
             className="btn-primary"
             disabled={selectedPlayers.length < 2}
-            style={{
-              opacity: selectedPlayers.length < 2 ? 0.5 : 1,
-              cursor: selectedPlayers.length < 2 ? 'not-allowed' : 'pointer'
-            }}
           >
             Start Game
           </button>

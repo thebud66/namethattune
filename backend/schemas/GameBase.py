@@ -12,6 +12,7 @@ class GameBase(BaseModel):
     ended_at: Optional[datetime] = None
     playlist_id: Optional[str] = None
     current_track_index: Optional[int] = 0
+    all_time_dj_participant_id: Optional[int] = None
 
 class GameCreate(GameBase):
     pass
@@ -21,6 +22,7 @@ class GameUpdate(BaseModel):
     ended_at: Optional[datetime] = None
     playlist_id: Optional[str] = None
     current_track_index: Optional[int] = None
+    all_time_dj_participant_id: Optional[int] = None
 
 class Game(GameBase):
     game_id: int

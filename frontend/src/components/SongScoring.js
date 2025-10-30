@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
 import { Award, Users, Target } from 'lucide-react';
 
-const SongScoring = ({ song, currentTrack, hasPlayers, hasStealer, onClose, onScoreSubmit }) => {
-  const [correctArtist, setCorrectArtist] = useState(false);
-  const [correctSong, setCorrectSong] = useState(false);
-  const [correctMovie, setCorrectMovie] = useState(false);
-  const [wasStolen, setWasStolen] = useState(false);
+const SongScoring = ({ 
+  song, 
+  currentTrack, 
+  hasPlayers, 
+  hasStealer, 
+  onClose, 
+  onScoreSubmit,
+  initialValues = null  // NEW: Accept initial values for editing
+}) => {
+  // Initialize with existing values if editing, otherwise default to false
+  const [correctArtist, setCorrectArtist] = useState(initialValues?.correctArtist ?? false);
+  const [correctSong, setCorrectSong] = useState(initialValues?.correctSong ?? false);
+  const [correctMovie, setCorrectMovie] = useState(initialValues?.correctMovie ?? false);
+  const [wasStolen, setWasStolen] = useState(initialValues?.wasStolen ?? false);
 
   const canHaveBonus = correctArtist || correctSong;
   const totalPoints = (correctArtist ? 1 : 0) + (correctSong ? 1 : 0) + (canHaveBonus && correctMovie ? 1 : 0);
@@ -19,13 +28,28 @@ const SongScoring = ({ song, currentTrack, hasPlayers, hasStealer, onClose, onSc
     });
   };
 
+  // Determine if we're editing
+  const isEditing = initialValues !== null;
+
+  // When editing, prioritize song data; when scoring new, prioritize currentTrack
+  const displayTitle = isEditing 
+    ? (song.song?.title || currentTrack?.name || 'Song Title')
+    : (currentTrack?.name || song.song?.title || 'Song Title');
+    
+  const displayArtist = isEditing
+    ? (song.track_info?.artist?.name || currentTrack?.artists?.map(a => a.name).join(', ') || 'Artist')
+    : (currentTrack?.artists?.map(a => a.name).join(', ') || song.track_info?.artist?.name || 'Artist');
+    
+  const displayAlbumArt = !isEditing && currentTrack?.album?.images?.[0]?.url;
+  const displayAlbumName = !isEditing && currentTrack?.album?.name;
+
   return (
     <div className="modal-overlay">
       <div className="modal" style={{ maxWidth: '600px' }}>
         <div style={{ marginBottom: '24px' }}>
           <h2 className="modal-title" style={{ margin: 0 }}>
             <Target size={24} style={{ display: 'inline', marginRight: '10px', verticalAlign: 'middle' }} />
-            Score This Song
+            {isEditing ? 'Edit Song Score' : 'Score This Song'}
           </h2>
         </div>
 
@@ -39,10 +63,10 @@ const SongScoring = ({ song, currentTrack, hasPlayers, hasStealer, onClose, onSc
           gap: '16px',
           alignItems: 'center'
         }}>
-          {/* Album Art */}
-          {currentTrack?.album?.images?.[0]?.url && (
+          {/* Album Art - only show when scoring new songs */}
+          {displayAlbumArt && (
             <img
-              src={currentTrack.album.images[0].url}
+              src={displayAlbumArt}
               alt={currentTrack.album.name}
               style={{
                 width: '80px',
@@ -58,14 +82,14 @@ const SongScoring = ({ song, currentTrack, hasPlayers, hasStealer, onClose, onSc
           {/* Track Info */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, fontSize: '20px', color: '#1f2937', marginBottom: '6px' }}>
-              {currentTrack?.name || song.song?.title || 'Song Title'}
+              {displayTitle}
             </div>
             <div style={{ fontSize: '16px', color: '#6b7280', marginBottom: '4px' }}>
-              {currentTrack?.artists?.map(a => a.name).join(', ') || song.track_info?.artist?.name || 'Artist'}
+              {displayArtist}
             </div>
-            {currentTrack?.album?.name && (
+            {displayAlbumName && (
               <div style={{ fontSize: '14px', color: '#9ca3af' }}>
-                {currentTrack.album.name}
+                {displayAlbumName}
               </div>
             )}
           </div>
@@ -77,7 +101,7 @@ const SongScoring = ({ song, currentTrack, hasPlayers, hasStealer, onClose, onSc
             What did {wasStolen ? 'the stealer' : 'the player(s)'} get correct?
           </h3>
 
-          {/* Rest of the scoring options remain the same */}
+          {/* Rest of the scoring options */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {/* Artist */}
             <label
@@ -214,9 +238,14 @@ const SongScoring = ({ song, currentTrack, hasPlayers, hasStealer, onClose, onSc
         </div>
 
         {/* Action Buttons */}
-        <div className="modal-actions" style={{ justifyContent: 'center' }}>
+        <div className="modal-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+          {isEditing && (
+            <button onClick={onClose} className="btn-secondary">
+              Cancel
+            </button>
+          )}
           <button onClick={handleSubmit} className="btn-primary">
-            Save Score
+            {isEditing ? 'Update Score' : 'Save Score'}
           </button>
         </div>
       </div>

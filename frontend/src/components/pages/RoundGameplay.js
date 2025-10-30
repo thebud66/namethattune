@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Music, Play, SkipForward, CheckCircle, Award, Trophy, Volume2 } from 'lucide-react';
+import { Music, Play, SkipForward, CheckCircle, Award, Trophy, Volume2, Edit2 } from 'lucide-react';
 import SongScoring from '../SongScoring';
 import { useSpotifyPlayback, SpotifyDeviceManager } from './SpotifyPlaybackManager';
 
@@ -20,6 +20,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
   const [availableDevices, setAvailableDevices] = useState([]);
   const [showDevicePicker, setShowDevicePicker] = useState(false);
   const [playlistTrackCount, setPlaylistTrackCount] = useState(null);
+  const [editingSongIndex, setEditingSongIndex] = useState(null);
 
   // Initialize Web Playback SDK
   const { player, deviceId: webPlayerDeviceId, isReady: webPlayerReady, error: playerError } = useSpotifyPlayback(isAuthenticated);
@@ -284,6 +285,12 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
     }
   };
 
+  const handleEditSong = (index) => {
+    setEditingSongIndex(index);
+    setCurrentSongIndex(index);
+    setShowScoring(true);
+  };
+
   const handleDeviceSelection = async (deviceId) => {
     setShowDevicePicker(false);
     const transferred = await SpotifyDeviceManager.transferPlayback(deviceId, false);
@@ -398,8 +405,9 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
 
   const handleScoringComplete = async (scoringData) => {
     try {
-      const currentSong = songs[currentSongIndex];
-      console.log('Scoring song:', currentSong, 'at index:', currentSongIndex);
+      const songIndex = editingSongIndex !== null ? editingSongIndex : currentSongIndex;
+      const currentSong = songs[songIndex];
+      console.log('Scoring song:', currentSong, 'at index:', songIndex);
 
       const targetTeamId = scoringData.wasStolen ?
         round.round_teams.find(t => t.role === 'stealer')?.round_team_id :
@@ -414,10 +422,16 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
       });
 
       setShowScoring(false);
+      setEditingSongIndex(null); // Reset edit mode
 
       const newSongsLength = await fetchRoundDetails();
-      setCurrentSongIndex(newSongsLength);
-      console.log('Set currentSongIndex to:', newSongsLength, '(ready for next song)');
+      
+      // Only advance to next song if not editing
+      if (editingSongIndex === null) {
+        setCurrentSongIndex(newSongsLength);
+      }
+      
+      console.log('Score saved successfully');
     } catch (error) {
       console.error('Error saving score:', error);
       setError('Failed to save score. Please try again.');
@@ -707,6 +721,35 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
                       {song.score_type === 'steal' && (
                         <span style={{ fontSize: '12px', fontWeight: 600, color: '#10b981' }}>STOLEN</span>
                       )}
+                      {/* Edit Button */}
+                      <button
+                        onClick={() => handleEditSong(index)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#f3f4f6',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '13px',
+                          color: '#374151',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.backgroundColor = '#e5e7eb';
+                          e.currentTarget.style.borderColor = '#9ca3af';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f3f4f6';
+                          e.currentTarget.style.borderColor = '#d1d5db';
+                        }}
+                        title="Edit score"
+                      >
+                        <Edit2 size={14} />
+                        Edit
+                      </button>
                     </div>
                   </>
                 ) : (
@@ -855,8 +898,17 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
           currentTrack={currentTrack}
           hasPlayers={roles.players.length > 0}
           hasStealer={roles.stealer !== null}
-          onClose={() => setShowScoring(false)}
+          onClose={() => {
+            setShowScoring(false);
+            setEditingSongIndex(null);
+          }}
           onScoreSubmit={handleScoringComplete}
+          initialValues={editingSongIndex !== null ? {
+            correctArtist: songs[editingSongIndex].correct_artist_guess,
+            correctSong: songs[editingSongIndex].correct_song_title_guess,
+            correctMovie: songs[editingSongIndex].bonus_correct_movie_guess,
+            wasStolen: songs[editingSongIndex].score_type === 'steal'
+          } : null}
         />
       )}
     </div>
