@@ -4,7 +4,7 @@ from typing import Optional
 from ..models.Enums import ScoreType 
 from .SongBase import Song
 from .ArtistBase import Artist
-from .TrackInfoBase import TrackInfo
+from .TrackInfoBase import TrackInfo, TrackInfoWithDetails
 
 class RoundSonglistBase(BaseModel):
     round_id: int
@@ -37,6 +37,6 @@ class RoundSonglist(RoundSonglistBase):
 class RoundSonglistWithDetails(RoundSonglist):
     """With song, artist, and track info details"""
     song: Song
-    track_info: TrackInfo
+    track_info: TrackInfoWithDetails  # CHANGE: Use TrackInfoWithDetails instead of TrackInfo
     
     model_config = {"from_attributes": True}

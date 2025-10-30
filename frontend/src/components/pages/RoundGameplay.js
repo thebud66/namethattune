@@ -83,10 +83,10 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
       console.log('Fetching round details for round:', roundId);
       const response = await axios.get(`http://localhost:8000/api/rounds/${roundId}/details`);
       const roundData = response.data;
-      
+
       console.log('Round data received:', roundData);
       console.log('Round teams:', roundData.round_teams);
-      
+
       // Set round data FIRST with all its properties
       setRound(roundData);
 
@@ -134,7 +134,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
 
     round?.round_teams?.forEach(team => {
       let teamScore = 0;
-      
+
       songs.forEach(song => {
         if (song.round_team_id === team.round_team_id) {
           if (song.correct_artist_guess) teamScore += 1;
@@ -169,7 +169,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
   const playNextSongFromPlaylist = async () => {
     setSpotifyError(false);
     setError('');
-    
+
     try {
       if (!spotifyPlaylistId) {
         setError('Spotify playlist not configured');
@@ -196,7 +196,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
           setSpotifyError(true);
           return;
         }
-        
+
         setAvailableDevices(devices);
         setShowDevicePicker(true);
         return;
@@ -217,14 +217,14 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
 
       // Step 2.5: Get playlist info to determine total track count (cached)
       let totalTracks = playlistTrackCount || 100; // Use cached value or default
-      
+
       if (!playlistTrackCount) {
         console.log('Fetching playlist info to get track count...');
         console.log('Playlist ID:', spotifyPlaylistId);
         try {
           const playlistResponse = await axios.get(`http://localhost:8000/api/spotify/playlists/${spotifyPlaylistId}`);
           console.log('Playlist response:', playlistResponse.data);
-          
+
           if (playlistResponse.data && playlistResponse.data.tracks_total) {
             totalTracks = playlistResponse.data.tracks_total;
             setPlaylistTrackCount(totalTracks); // Cache it
@@ -244,7 +244,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
 
       // Step 3: Start playing from playlist at random position
       console.log('Playing from playlist at random position...');
-      
+
       // Generate a random position based on actual playlist size
       const randomPosition = Math.floor(Math.random() * totalTracks);
       console.log(`Random position: ${randomPosition} out of ${totalTracks}`);
@@ -264,10 +264,10 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
 
       const nowPlayingResponse = await axios.get('http://localhost:8000/api/spotify/me/player/currently-playing');
       console.log('Now playing response:', nowPlayingResponse.data);
-      
+
       const track = nowPlayingResponse.data.item || nowPlayingResponse.data;
       console.log('Track extracted:', track);
-      
+
       setCurrentTrack(track);
 
       if (track) {
@@ -287,8 +287,39 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
 
   const handleEditSong = (index) => {
     setEditingSongIndex(index);
-    setCurrentSongIndex(index);
     setShowScoring(true);
+    // DON'T set currentSongIndex here - keep it separate from editing
+  };
+
+  const handleEditScoreSubmit = async (scoringData) => {
+    try {
+      const songToEdit = songs[editingSongIndex];
+
+      // Determine which team gets the points
+      const targetTeamId = scoringData.wasStolen ?
+        round.round_teams.find(t => t.role === 'stealer')?.round_team_id :
+        round.round_teams.find(t => t.role === 'player')?.round_team_id;
+
+      // Update the round songlist with scoring
+      await axios.put(`http://localhost:8000/api/round-songlists/${songToEdit.round_songlist_id}`, {
+        round_team_id: targetTeamId,
+        correct_artist_guess: scoringData.correctArtist,
+        correct_song_title_guess: scoringData.correctSong,
+        bonus_correct_movie_guess: scoringData.correctMovie,
+        score_type: scoringData.wasStolen ? 'steal' : 'standard'
+      });
+
+      setShowScoring(false);
+      setEditingSongIndex(null);
+
+      // Refresh songs list to get updated data
+      await fetchRoundDetails();
+      // Don't increment currentSongIndex - we're just editing, not moving forward
+
+    } catch (error) {
+      console.error('Error saving edited score:', error);
+      setError('Failed to save edited score. Please try again.');
+    }
   };
 
   const handleDeviceSelection = async (deviceId) => {
@@ -308,7 +339,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
       console.log('Track ID:', track?.id);
       console.log('Track name:', track?.name);
       console.log('Track artists:', track?.artists);
-      
+
       // Use the passed round or the state round
       const roundToUse = currentRound || round;
       console.log('Round object:', roundToUse);
@@ -390,7 +421,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
       console.log('Fetching updated round details...');
       const newSongsLength = await fetchRoundDetails();
       setCurrentSongIndex(newSongsLength - 1);
-      
+
       console.log('Showing scoring modal');
       setShowScoring(true);
       console.log('=== TRACK SAVED SUCCESSFULLY ===');
@@ -425,12 +456,12 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
       setEditingSongIndex(null); // Reset edit mode
 
       const newSongsLength = await fetchRoundDetails();
-      
+
       // Only advance to next song if not editing
       if (editingSongIndex === null) {
         setCurrentSongIndex(newSongsLength);
       }
-      
+
       console.log('Score saved successfully');
     } catch (error) {
       console.error('Error saving score:', error);
@@ -474,7 +505,12 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
   }
 
   const isRoundComplete = songs.length >= SONGS_PER_ROUND;
-  const canPlayNext = currentSongIndex === songs.length && !isRoundComplete;
+
+  const canPlayNext = currentSongIndex === songs.length &&
+    !isRoundComplete &&
+    !showScoring &&
+    editingSongIndex === null;
+
   const roundScores = calculateRoundScores();
 
   return (
@@ -594,13 +630,13 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
                       }
                       alt={player.player.name}
                       style={{
-                        width: '30px',
-                        height: '30px',
+                        width: '40px',
+                        height: '40px',
                         borderRadius: '50%',
                         objectFit: 'cover'
                       }}
                     />
-                    <div style={{ fontSize: '14px', fontWeight: 500 }}>{player.player.name}</div>
+                    <div style={{ fontWeight: 600 }}>{player.player.name}</div>
                   </div>
                 );
               })}
@@ -659,111 +695,129 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
       </div>
 
       {/* Song List */}
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        padding: '20px',
-        marginBottom: '30px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-      }}>
-        <h3 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Music size={20} />
-          Songs
-        </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {Array.from({ length: SONGS_PER_ROUND }, (_, index) => {
-            const song = songs[index];
-            const isPlayed = Boolean(song);
-            const isCurrent = index === currentSongIndex && showScoring;
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {Array.from({ length: SONGS_PER_ROUND }).map((_, index) => {
+          const song = songs[index]; // Will be undefined for placeholder rows
+          const isPlayed = song && (
+            song.correct_artist_guess !== null ||
+            song.correct_song_title_guess !== null ||
+            song.bonus_correct_movie_guess !== null
+          );
+          const isCurrentSong = index === currentSongIndex;
 
-            return (
-              <div
-                key={index}
-                style={{
-                  padding: '12px',
-                  backgroundColor: isCurrent ? '#f0f4ff' : isPlayed ? '#f9fafb' : '#ffffff',
-                  border: isCurrent ? '2px solid #667eea' : '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px'
-                }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  backgroundColor: isPlayed ? '#667eea' : '#e5e7eb',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 600,
-                  fontSize: '14px'
-                }}>
-                  {index + 1}
-                </div>
-
-                {isPlayed ? (
-                  <>
-                    <Music size={20} style={{ color: '#667eea' }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, color: '#1f2937' }}>
-                        {song.song?.title || 'Song Title'}
-                      </div>
-                      <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                        {song.track_info?.artist?.name || 'Artist'}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      {song.correct_artist_guess && <CheckCircle size={18} style={{ color: '#10b981' }} />}
-                      {song.correct_song_title_guess && <CheckCircle size={18} style={{ color: '#10b981' }} />}
-                      {song.bonus_correct_movie_guess && <Award size={18} style={{ color: '#f59e0b' }} />}
-                      {song.score_type === 'steal' && (
-                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#10b981' }}>STOLEN</span>
-                      )}
-                      {/* Edit Button */}
-                      <button
-                        onClick={() => handleEditSong(index)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#f3f4f6',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '13px',
-                          color: '#374151',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.backgroundColor = '#e5e7eb';
-                          e.currentTarget.style.borderColor = '#9ca3af';
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.backgroundColor = '#f3f4f6';
-                          e.currentTarget.style.borderColor = '#d1d5db';
-                        }}
-                        title="Edit score"
-                      >
-                        <Edit2 size={14} />
-                        Edit
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Music size={20} style={{ color: '#d1d5db' }} />
-                    <div style={{ flex: 1, color: '#9ca3af', fontStyle: 'italic' }}>
-                      Not played yet
-                    </div>
-                  </>
-                )}
+          return (
+            <div
+              key={song?.round_songlist_id || `placeholder-${index}`}
+              style={{
+                padding: '12px 16px',
+                backgroundColor: isCurrentSong ? '#dbeafe' : isPlayed ? '#f9fafb' : '#ffffff',
+                border: isCurrentSong ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {/* Song Number Badge */}
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                backgroundColor: isPlayed ? '#667eea' : '#e5e7eb',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 600,
+                fontSize: '14px'
+              }}>
+                {index + 1}
               </div>
-            );
-          })}
-        </div>
+
+              {isPlayed ? (
+                <>
+                  {/* Played Song Content */}
+                  <Music size={20} style={{ color: '#667eea' }} />
+                  <div style={{ flex: 1 }}>
+                    {/* Track Title - CORRECT PATH */}
+                    <div style={{ fontWeight: 600, color: '#1f2937' }}>
+                      {song.song?.title || 'Unknown Track'}
+                    </div>
+                    {/* Artist Name - CORRECT PATH */}
+                    <div style={{ fontSize: '14px', color: '#6b7280' }}>
+                      {song.track_info?.artist?.name || 'Unknown Artist'}
+                    </div>
+                  </div>
+
+                  {/* Score Display with Icons - FIXED */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '8px',
+                    alignItems: 'center'
+                  }}>
+                    {song.correct_artist_guess && (
+                      <CheckCircle size={18} style={{ color: '#10b981' }} title="Artist Correct" />
+                    )}
+                    {song.correct_song_title_guess && (
+                      <CheckCircle size={18} style={{ color: '#10b981' }} title="Song Correct" />
+                    )}
+                    {song.bonus_correct_movie_guess && (
+                      <Award size={18} style={{ color: '#f59e0b' }} title="Movie Bonus" />
+                    )}
+                    {song.score_type === 'steal' && (
+                      <span style={{
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: '#10b981'
+                      }}>
+                        STOLEN
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Edit Button */}
+                  <button
+                    onClick={() => handleEditSong(index)}
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: '#f3f4f6',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '13px',
+                      color: '#374151',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = '#e5e7eb';
+                      e.currentTarget.style.borderColor = '#9ca3af';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f3f4f6';
+                      e.currentTarget.style.borderColor = '#d1d5db';
+                    }}
+                    title="Edit score"
+                  >
+                    <Edit2 size={14} />
+                    Edit
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Placeholder for Unplayed Song */}
+                  <Music size={20} style={{ color: '#d1d5db' }} />
+                  <div style={{ flex: 1, color: '#9ca3af', fontStyle: 'italic' }}>
+                    Not played yet
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Error Display */}
@@ -853,7 +907,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
           </div>
         </div>
       )}
-      
+
       {/* Action Buttons */}
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
         {canPlayNext && spotifyPlaylistId && !spotifyError && (
@@ -890,19 +944,20 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
           </button>
         )}
       </div>
-      
+
       {/* Modals */}
-      {showScoring && songs.length > currentSongIndex && songs[currentSongIndex] && (
+      {showScoring && (editingSongIndex !== null ? songs[editingSongIndex] : songs[currentSongIndex]) && (
         <SongScoring
-          song={songs[currentSongIndex]}
+          song={editingSongIndex !== null ? songs[editingSongIndex] : songs[currentSongIndex]}
           currentTrack={currentTrack}
           hasPlayers={roles.players.length > 0}
           hasStealer={roles.stealer !== null}
           onClose={() => {
             setShowScoring(false);
             setEditingSongIndex(null);
+            // Don't change currentSongIndex here
           }}
-          onScoreSubmit={handleScoringComplete}
+          onScoreSubmit={editingSongIndex !== null ? handleEditScoreSubmit : handleScoringComplete}
           initialValues={editingSongIndex !== null ? {
             correctArtist: songs[editingSongIndex].correct_artist_guess,
             correctSong: songs[editingSongIndex].correct_song_title_guess,
