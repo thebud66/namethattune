@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Music, Play, SkipForward, CheckCircle, Award, Trophy, Volume2, Edit2 } from 'lucide-react';
+import { Music, Play, SkipForward, CheckCircle, Award, Trophy, Volume2, Edit2, Trash2 } from 'lucide-react';
 import SongScoring from '../SongScoring';
+import DeleteConfirmationModal from '../DeleteConfirmationModal';
 import { useSpotifyPlayback, SpotifyDeviceManager } from './SpotifyPlaybackManager';
 
 const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
@@ -21,7 +22,9 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
   const [showDevicePicker, setShowDevicePicker] = useState(false);
   const [playlistTrackCount, setPlaylistTrackCount] = useState(null);
   const [editingSongIndex, setEditingSongIndex] = useState(null);
-
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [songToDelete, setSongToDelete] = useState(null);
+  
   // Initialize Web Playback SDK
   const { player, deviceId: webPlayerDeviceId, isReady: webPlayerReady, error: playerError } = useSpotifyPlayback(isAuthenticated);
 
@@ -289,6 +292,40 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
     // DON'T set currentSongIndex here - keep it separate from editing
   };
 
+  const handleDeleteSong = (song) => {
+    setSongToDelete(song);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!songToDelete) return;
+
+    try {
+      // Delete the song from the round
+      await axios.delete(`http://localhost:8000/api/round-songlists/${songToDelete.round_songlist_id}`);
+
+      console.log('Song deleted successfully');
+
+      // Close modal and clear state
+      setDeleteModalOpen(false);
+      setSongToDelete(null);
+
+      // Refresh the round to update the song list
+      const newSongsLength = await fetchRoundDetails();
+
+      // Adjust currentSongIndex if needed
+      if (currentSongIndex >= newSongsLength) {
+        setCurrentSongIndex(newSongsLength);
+      }
+
+    } catch (error) {
+      console.error('Error deleting song:', error);
+      setError('Failed to delete song. Please try again.');
+      setDeleteModalOpen(false);
+      setSongToDelete(null);
+    }
+  };
+
   const handleEditScoreSubmit = async (scoringData) => {
     try {
       const songToEdit = songs[editingSongIndex];
@@ -503,7 +540,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
   }
 
   const isRoundComplete = songs.length >= (game?.songs_per_round || 10);
-  
+
   const canPlayNext = currentSongIndex === songs.length &&
     !isRoundComplete &&
     !showScoring &&
@@ -803,6 +840,19 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
                     <Edit2 size={14} />
                     Edit
                   </button>
+                  <button
+                    onClick={() => handleDeleteSong(song)}
+                    className="btn-icon"
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      backgroundColor: '#fef2f2',
+                      border: '1px solid #fecaca'
+                    }}
+                    title="Delete song"
+                  >
+                    <Trash2 size={16} style={{ color: '#ef4444' }} />
+                  </button>
                 </>
               ) : (
                 <>
@@ -962,6 +1012,23 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
             correctMovie: songs[editingSongIndex].bonus_correct_movie_guess,
             wasStolen: songs[editingSongIndex].score_type === 'steal'
           } : null}
+        />
+      )}
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && songToDelete && (
+        <DeleteConfirmationModal
+          isOpen={deleteModalOpen}
+          onClose={() => {
+            setDeleteModalOpen(false);
+            setSongToDelete(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          title="Delete Song from Round"
+          message="Are you sure you want to delete this song? This will remove it from the round and you'll be able to play a new song in its place. This action cannot be undone."
+          songInfo={{
+            title: songToDelete.track_info?.song?.title || 'Unknown',
+            artist: songToDelete.track_info?.artist?.name || 'Unknown Artist'
+          }}
         />
       )}
     </div>
