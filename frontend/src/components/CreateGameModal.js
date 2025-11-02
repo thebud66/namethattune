@@ -6,6 +6,7 @@ const CreateGameModal = ({ onClose, onGameCreated }) => {
   const [players, setPlayers] = useState([]);
   const [selectedPlayers, setSelectedPlayers] = useState([]);
   const [allTimeDjPlayerId, setAllTimeDjPlayerId] = useState(null);
+  const [songsPerRound, setSongsPerRound] = useState(10); // Default to 10
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [draggedIndex, setDraggedIndex] = useState(null);
@@ -66,13 +67,43 @@ const CreateGameModal = ({ onClose, onGameCreated }) => {
     }
 
     try {
-      const gameData = {
-        player_ids: selectedPlayers.map(p => p.player_id),
-        all_time_dj_player_id: allTimeDjPlayerId
-      };
+      // Create the game with songs_per_round
+      const gameResponse = await axios.post('http://127.0.0.1:8000/api/games/', {
+        started_at: new Date().toISOString(),
+        songs_per_round: songsPerRound
+      });
 
-      const response = await axios.post('http://127.0.0.1:8000/api/games/', gameData);
-      onGameCreated(response.data.game_id);
+      const gameId = gameResponse.data.game_id;
+
+      // Add participants with seat numbers
+      const participantPromises = selectedPlayers.map((player, index) =>
+        axios.post('http://127.0.0.1:8000/api/participants/', {
+          game_id: gameId,
+          player_id: player.player_id,
+          seat_number: index + 1
+        })
+      );
+
+      const participantResponses = await Promise.all(participantPromises);
+
+      // If an all-time DJ was selected, update the game
+      if (allTimeDjPlayerId) {
+        let allTimeDjParticipantId = null;
+        for (let i = 0; i < selectedPlayers.length; i++) {
+          if (selectedPlayers[i].player_id === allTimeDjPlayerId) {
+            allTimeDjParticipantId = participantResponses[i].data.participant_id;
+            break;
+          }
+        }
+
+        if (allTimeDjParticipantId) {
+          await axios.put(`http://127.0.0.1:8000/api/games/${gameId}`, {
+            all_time_dj_participant_id: allTimeDjParticipantId
+          });
+        }
+      }
+
+      onGameCreated(gameId);
     } catch (err) {
       console.error('Error creating game:', err);
       setError('Failed to create game. Please try again.');
@@ -121,7 +152,7 @@ const CreateGameModal = ({ onClose, onGameCreated }) => {
           overflowX: 'hidden',
           marginBottom: '24px',
           paddingRight: '8px',
-          minHeight: 0  // Important for Firefox
+          minHeight: 0
         }}>
           {error && (
             <div className="error" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -129,6 +160,34 @@ const CreateGameModal = ({ onClose, onGameCreated }) => {
               {error}
             </div>
           )}
+
+          {/* Songs Per Round Setting */}
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#1f2937' }}>
+              Songs Per Round
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <input
+                type="number"
+                min="1"
+                max="50"
+                value={songsPerRound}
+                onChange={(e) => setSongsPerRound(Math.max(1, Math.min(50, parseInt(e.target.value) || 10)))}
+                style={{
+                  width: '100px',
+                  padding: '10px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  textAlign: 'center'
+                }}
+              />
+              <span style={{ color: '#6b7280', fontSize: '14px' }}>
+                Number of songs to play each round (1-50)
+              </span>
+            </div>
+          </div>
 
           <div style={{ marginBottom: '24px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px', color: '#1f2937' }}>

@@ -13,6 +13,7 @@ class GameBase(BaseModel):
     playlist_id: Optional[str] = None
     current_track_index: Optional[int] = 0
     all_time_dj_participant_id: Optional[int] = None
+    songs_per_round: Optional[int] = 10  # Default to 10 songs per round
 
 class GameCreate(GameBase):
     pass
@@ -23,6 +24,7 @@ class GameUpdate(BaseModel):
     playlist_id: Optional[str] = None
     current_track_index: Optional[int] = None
     all_time_dj_participant_id: Optional[int] = None
+    songs_per_round: Optional[int] = None
 
 class Game(GameBase):
     game_id: int

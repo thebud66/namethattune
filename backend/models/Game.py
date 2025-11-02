@@ -10,6 +10,7 @@ class Game(Base):
     playlist_id = Column(String(100), nullable=True)  # Spotify playlist ID
     current_track_index = Column(Integer, default=0, nullable=False)  # Track position in playlist
     all_time_dj_participant_id = Column(Integer, ForeignKey("participant.participant_id"), nullable=True)  # Optional all-time DJ
+    songs_per_round = Column(Integer, default=10, nullable=False)  # Number of songs per round
     started_at = Column(DateTime(timezone=True), nullable=True)
     ended_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

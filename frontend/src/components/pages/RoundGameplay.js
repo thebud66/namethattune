@@ -25,8 +25,6 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
   // Initialize Web Playback SDK
   const { player, deviceId: webPlayerDeviceId, isReady: webPlayerReady, error: playerError } = useSpotifyPlayback(isAuthenticated);
 
-  const SONGS_PER_ROUND = 10;
-
   useEffect(() => {
     checkAuthStatus();
   }, []);
@@ -504,8 +502,8 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
     );
   }
 
-  const isRoundComplete = songs.length >= SONGS_PER_ROUND;
-
+  const isRoundComplete = songs.length >= (game?.songs_per_round || 10);
+  
   const canPlayNext = currentSongIndex === songs.length &&
     !isRoundComplete &&
     !showScoring &&
@@ -518,7 +516,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
       {/* Header */}
       <div style={{ marginBottom: '30px' }}>
         <h1>Round {round?.round_number}</h1>
-        <p className="subtitle">Song {songs.length} of {SONGS_PER_ROUND}</p>
+        <p className="subtitle">Song {songs.length} of {game?.songs_per_round || 10}</p>
         {webPlayerReady && (
           <p style={{ color: '#10b981', fontSize: '14px', marginTop: '8px' }}>
             <Volume2 size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
@@ -696,7 +694,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
 
       {/* Song List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {Array.from({ length: SONGS_PER_ROUND }).map((_, index) => {
+        {Array.from({ length: game?.songs_per_round || 10 }).map((_, index) => {
           const song = songs[index]; // Will be undefined for placeholder rows
           const isPlayed = song && (
             song.correct_artist_guess !== null ||
@@ -909,7 +907,7 @@ const RoundGameplay = ({ gameId, roundId, onRoundComplete }) => {
       )}
 
       {/* Action Buttons */}
-      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '8px' }}>
         {canPlayNext && spotifyPlaylistId && !spotifyError && (
           <button
             className="btn-primary"

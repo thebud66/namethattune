@@ -40,7 +40,8 @@ def create_game(db: Session, game: GameCreate):
         ended_at=game.ended_at,
         playlist_id=game.playlist_id,
         current_track_index=game.current_track_index,
-        all_time_dj_participant_id=game.all_time_dj_participant_id
+        all_time_dj_participant_id=game.all_time_dj_participant_id,
+        songs_per_round=game.songs_per_round if game.songs_per_round is not None else 10
     )
     db.add(db_game)
     db.commit()
